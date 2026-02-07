@@ -48,36 +48,6 @@
 - 페이지 이동은 `currentPage`만 변경됨 (예: 1 → 2)
 - 나머지 필터/기간 파라미터는 동일하게 유지됨
 
-## 2.1 상세 관련 호출 흐름 (관찰됨)
-### 페이지 최초 진입 시
-- `https://nuri.g2b.go.kr/websquare/suffix.txt`
-- `https://nuri.g2b.go.kr/websquare/serverTime.wq`
-- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
-- `https://nuri.g2b.go.kr/fa/faz/fazf/PrtlFtre/selectPrtlFtreMainList.do`
-
-### 메뉴 진입 시 (목록 > 입찰공고 > 입찰공고목록)
-- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
-- `https://nuri.g2b.go.kr/co/coa/coaa/MainMenu/selectMenuAtetMatrWhenMenuOpen.do`
-- `https://nuri.g2b.go.kr/co/coa/coaa/MainMenu/selectMenuAtetMatrBySqno.do`
-- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
-
-### 검색 클릭 시
-- `https://nuri.g2b.go.kr/nn/nnb/nnba/selectBidPbancList.do`
-
-### 목록 행 클릭(상세 진입) 시
-- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
-- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
-- `https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidPbancPrgsDetl.do`
-- `https://nuri.g2b.go.kr/kupload/config/raonkupload.config.txt`
-- `https://nuri.g2b.go.kr/fs/fsc/fsca/fileUpload.do`
-- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
-- `https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidNoceDetl.do`
-- `https://nuri.g2b.go.kr/fs/fsc/fscb/UntyAtchFile/selectUntyAtchFileList.do`
-- `https://nuri.g2b.go.kr/fs/fsc/fsca/fileUpload.do`
-
-### URL 유지 관련 메모
-- 목록/상세 전환에도 브라우저 URL은 유지됨 → 화면 전환이 아닌 API 호출 기반
-
 ## 2.1.6 UI 실제 플로우(보정)
 ### 검색 화면 진입
 - 홈 진입 → 팝업 닫기
@@ -122,6 +92,13 @@
 - 입찰공고명 링크(상세 팝업): `#mf_wfm_container_grdBidPbancList_body_tbody td[col_id="bidPbancNm"] a`
 - 개찰결과 버튼: `#mf_wfm_container_grdBidPbancList_body_tbody td[col_id="btnOnbsRslt"] button`
 - 개찰결과 버튼(활성 조건): disabled 속성 없을 때만 클릭 가능
+- 개찰결과 버튼(상태 기준, 관찰): `pbancSttsGridCdNm`이 "개찰완료"일 때 활성화됨
+
+### 페이지네이션
+- 페이지 컨테이너: `#mf_wfm_container_pagelist`
+- 페이지 번호 버튼: `#mf_wfm_container_pagelist_page_{N}` (예: `#mf_wfm_container_pagelist_page_1`)
+- 이전/다음: `#mf_wfm_container_pagelist_prev_btn`, `#mf_wfm_container_pagelist_next_btn`
+- 처음/마지막: `#mf_wfm_container_pagelist_prevPage_btn`, `#mf_wfm_container_pagelist_nextPage_btn`
 
 ### 개찰결과 화면
 - 화면 타이틀: `#mf_wfm_cntsHeader_spnHeaderTitle` (값: "개찰결과조회")
@@ -131,7 +108,11 @@
 - 팝업 최상위 컨테이너: `#mf_wfm_container_BidPbancP`
 - 팝업 닫기 버튼: `#mf_wfm_container_BidPbancP_close`
 
-## 2.1.4 개찰결과조회 화면(DOM) 기반 추론 (신규)
+### 셀렉터 안정성 가이드
+- 우선순위: 고정 `id` > `col_id` 기반 셀 > `button.w2window_close` 공통 클래스
+- 회피 대상: `wq_uuid_*`가 포함된 동적 id (세션마다 변경될 수 있음)
+
+## 2.1.8 개찰결과조회 화면(DOM) 기반 추론 (신규)
 ### 화면 특징
 - 목록에서 "개찰결과" 버튼 클릭 시 **개찰결과 화면으로 전환**
 - 상단 요약(공고일반) + 하단 그리드(개찰결과목록) 구성
@@ -163,7 +144,7 @@
 ### 보완 필요
 - 실제 API 응답 필드명 확인 필요(현재는 DOM 기반 임시 매핑)
 
-## 2.1.5 개찰결과조회 API (관찰됨, 신규)
+## 2.1.9 개찰결과조회 API (관찰됨, 신규)
 ### 엔드포인트
 - URL: `https://nuri.g2b.go.kr/nn/nnb/nnbd/selectOobsRsltDetl.do`
 - Method: `POST`
@@ -231,6 +212,36 @@
 - `ufnsYn`, `ufnsYnLtrs`
 - `ibxEvlScrPrpl`, `ibxEvlScrPrce`, `ibxEvlScrOvrl`
 - `sfbrSlctnOrd`, `sfbrSlctnRsltCd`
+
+## 2.1 상세 관련 호출 흐름 (관찰됨)
+### 페이지 최초 진입 시
+- `https://nuri.g2b.go.kr/websquare/suffix.txt`
+- `https://nuri.g2b.go.kr/websquare/serverTime.wq`
+- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
+- `https://nuri.g2b.go.kr/fa/faz/fazf/PrtlFtre/selectPrtlFtreMainList.do`
+
+### 메뉴 진입 시 (목록 > 입찰공고 > 입찰공고목록)
+- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
+- `https://nuri.g2b.go.kr/co/coa/coaa/MainMenu/selectMenuAtetMatrWhenMenuOpen.do`
+- `https://nuri.g2b.go.kr/co/coa/coaa/MainMenu/selectMenuAtetMatrBySqno.do`
+- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
+
+### 검색 클릭 시
+- `https://nuri.g2b.go.kr/nn/nnb/nnba/selectBidPbancList.do`
+
+### 목록 행 클릭(상세 진입) 시
+- `https://nuri.g2b.go.kr/co/coz/coza/util/getSession.do`
+- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
+- `https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidPbancPrgsDetl.do`
+- `https://nuri.g2b.go.kr/kupload/config/raonkupload.config.txt`
+- `https://nuri.g2b.go.kr/fs/fsc/fsca/fileUpload.do`
+- `https://nuri.g2b.go.kr/co/cob/coba/CommCd/selectCommCdList.do`
+- `https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidNoceDetl.do`
+- `https://nuri.g2b.go.kr/fs/fsc/fscb/UntyAtchFile/selectUntyAtchFileList.do`
+- `https://nuri.g2b.go.kr/fs/fsc/fsca/fileUpload.do`
+
+### URL 유지 관련 메모
+- 목록/상세 전환에도 브라우저 URL은 유지됨 → 화면 전환이 아닌 API 호출 기반
 
 ## 2.1.2 추가 수집 필요 항목 (미확정)
 - `bidInfoList`에 `bidPbancNo/bidPbancOrd` 외 필드 존재 여부
@@ -648,7 +659,7 @@
 - `bid_pbanc_no` (str): 입찰공고번호(예: R26BK01322795)
 - `bid_pbanc_ord` (str): 차수(예: 000)
 - `bid_pbanc_nm` (str): 입찰공고명
-- `bid_pbanc_num` (str): 합성번호(예: R26BK01322795000)
+- `bid_pbanc_num` (str): 표시용 공고번호-차수(예: `R26BK01292424-001`)
 - `pbanc_stts_cd` (str): 공고구분 코드
 - `pbanc_stts_cd_nm` (str): 공고구분명(등록공고/변경공고 등)
 - `prcm_bsne_se_cd` (str): 공고분류 코드
@@ -694,6 +705,10 @@
 - `bdng_amt_yn_nm` (str|null): 투찰금액 여부 표시(화면 표기용)
 - `slpr_rcpt_ddln_dt1` (datetime|null): 추가 마감일시(화면 표기용)
 
+### 포맷 규칙(공고 번호)
+- 표시용(화면/그리드): `bidPbancNum = bidPbancNo + "-" + bidPbancOrd` (예: `R26BK01292424-001`)
+- 합성키/저장용: `bid_pbanc_no` + `bid_pbanc_ord`를 별도 컬럼으로 유지(고유키)
+
 ## 4. 엔티티: BidNoticeDetail (상세 기준, 추후 확정)
 - 상세 페이지 확인 후 필드 확정
 - 첨부파일, 담당자, 예가/기초금액, 일정 등 추가 예정
@@ -702,6 +717,9 @@
 - 날짜/시간: `YYYY/MM/DD HH:mm` → `datetime`
 - 코드/코드명: 쌍으로 저장하여 조회/필터 모두 지원
 - Y/N 플래그: `bool`로 변환 가능한 경우 변환
+ - 금액: 콤마 제거 후 `int` 변환 (예: `1,030,000,000` → `1030000000`)
+ - 일시(초 포함): `YYYY/MM/DD HH:mm:ss` → `datetime`
+ - 사업자등록번호: 하이픈 제거 후 저장, 표시는 하이픈 포함 유지 (예: `120-86-77753` → `1208677753`)
 
 ## 6. 중복 방지 키
 - UNIQUE(`bid_pbanc_no`, `bid_pbanc_ord`)
