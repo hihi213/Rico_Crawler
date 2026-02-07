@@ -1,5 +1,13 @@
 # 스키마 정의 (누리장터 입찰공고)
 
+## 빠른 목차
+- A. API/흐름/관찰
+- B. 도메인 엔티티
+- C. 정규화/중복/관계/테스트
+- D. 보완 항목/트래킹
+
+## A. API/흐름/관찰
+
 ## 1. 개요
 - 소스: 누리장터 입찰공고 목록 API/그리드 (목록 JSON 기준)
 - 식별자: `bid_pbanc_no` + `bid_pbanc_ord` 조합이 고유 키
@@ -44,7 +52,7 @@
 - `pbancPstgYn` (str): 게시 여부(Y/N)
 - `frgnrRprsvYn` (str): 외국인대표 여부(옵션)
 
-### 페이징 규칙 (확인됨)
+### 페이징 규칙 [확정]
 - 페이지 이동은 `currentPage`만 변경됨 (예: 1 → 2)
 - 나머지 필터/기간 파라미터는 동일하게 유지됨
 
@@ -112,7 +120,7 @@
 - 우선순위: 고정 `id` > `col_id` 기반 셀 > `button.w2window_close` 공통 클래스
 - 회피 대상: `wq_uuid_*`가 포함된 동적 id (세션마다 변경될 수 있음)
 
-## 2.1.8 개찰결과조회 화면(DOM) 기반 추론 (신규)
+## 2.1.8 개찰결과조회 화면(DOM) 기반 추론 [관찰]
 ### 화면 특징
 - 목록에서 "개찰결과" 버튼 클릭 시 **개찰결과 화면으로 전환**
 - 상단 요약(공고일반) + 하단 그리드(개찰결과목록) 구성
@@ -144,7 +152,7 @@
 ### 보완 필요
 - 실제 API 응답 필드명 확인 필요(현재는 DOM 기반 임시 매핑)
 
-## 2.1.9 개찰결과조회 API (관찰됨, 신규)
+## 2.1.9 개찰결과조회 API [관찰]
 ### 엔드포인트
 - URL: `https://nuri.g2b.go.kr/nn/nnb/nnbd/selectOobsRsltDetl.do`
 - Method: `POST`
@@ -213,7 +221,7 @@
 - `ibxEvlScrPrpl`, `ibxEvlScrPrce`, `ibxEvlScrOvrl`
 - `sfbrSlctnOrd`, `sfbrSlctnRsltCd`
 
-## 2.1 상세 관련 호출 흐름 (관찰됨)
+## 2.1 상세 관련 호출 흐름 [관찰]
 ### 페이지 최초 진입 시
 - `https://nuri.g2b.go.kr/websquare/suffix.txt`
 - `https://nuri.g2b.go.kr/websquare/serverTime.wq`
@@ -243,34 +251,77 @@
 ### URL 유지 관련 메모
 - 목록/상세 전환에도 브라우저 URL은 유지됨 → 화면 전환이 아닌 API 호출 기반
 
-## 2.1.2 추가 수집 필요 항목 (미확정)
-- `bidInfoList`에 `bidPbancNo/bidPbancOrd` 외 필드 존재 여부
-- `bidLmtRgnList.sbxIntpRgnUntyCdNm` 값이 채워지는 샘플
-- `dmLcnsLmtPrmsIntpList` 추가 키 존재 여부
-- `rbidList`에 결과/사유 등 추가 메타 존재 여부
-- `pbancOrgMap` vs `bidPbancMap` 키 차이 여부
+## B. 도메인 엔티티
+## 3. 엔티티: BidNoticeListItem (목록 기준)
+### 필수 필드
+- `bid_pbanc_no` (str): 입찰공고번호(예: R26BK01322795)
+- `bid_pbanc_ord` (str): 차수(예: 000)
+- `bid_pbanc_nm` (str): 입찰공고명
+- `bid_pbanc_num` (str): 표시용 공고번호-차수(예: `R26BK01292424-001`)
+- `pbanc_stts_cd` (str): 공고구분 코드
+- `pbanc_stts_cd_nm` (str): 공고구분명(등록공고/변경공고 등)
+- `prcm_bsne_se_cd` (str): 공고분류 코드
+- `prcm_bsne_se_cd_nm` (str): 공고분류명(공사/용역 등)
+- `bid_mthd_cd` (str): 입찰방식 코드
+- `bid_mthd_cd_nm` (str): 입찰방식명
+- `std_ctrt_mthd_cd` (str): 계약방법 코드
+- `std_ctrt_mthd_cd_nm` (str): 계약방법명
+- `scsbd_mthd_cd` (str): 낙찰방법 코드
+- `scsbd_mthd_cd_nm` (str): 낙찰방법명
+- `pbanc_pstg_dt` (datetime): 공고게시일시
+- `pbanc_knd_cd` (str): 공고종류 코드
+- `pbanc_knd_cd_nm` (str): 공고종류명
+- `grp_nm` (str): 기관명/조합명
+- `slpr_rcpt_ddln_dt` (datetime): 입찰마감일시
+- `pbanc_stts_grid_cd_nm` (str): 진행상태(입찰개시 등)
+ - `row_num` (int): 화면 행 번호
+ - `tot_cnt` (int): 전체 건수
+ - `current_page` (int): 현재 페이지
+ - `record_count_per_page` (int): 페이지 크기
+ - `next_row_yn` (str): 다음 행 존재 여부(Y/N)
 
-## 2.1.3 샘플 확보 현황
-- `bidLmtIntpList.sbxIntpRgnUntyCdNm` 채워진 샘플 확보
-  - 예: `R26BK01320434`에서 값 `"도시 및 주거환경 정비사업전문관리업"`
-  - 추가 예: `R26BK01296848` (입찰 제한/지역/업종 리스트는 비어있음)
-- 추가 예: `R26BK01294070` (입찰 제한/지역/업종 리스트는 비어있음)
-- 추가 예: `R25BK00821183` (재공고/물품, `bidPbancItemlist`에 `ibxItemCfnm`/`calDlvgdsTermYmd`/`ibxCvlnPbancQty` 등 확인)
-- 추가 예: `20241142507` (재공고/용역, `bsamtMap.bsamtCmpuOrd`=`000`, `bsamt`/`bsamtEncrVal` null)
-- 추가 예: `20241205759` (재공고/용역, `pnprDcsnMthoCd` 값 존재, `pnprRlsYn` null)
-- 추가 예: `20241137429` (재공고/용역, `bidLmtIntpList`에 업종명 `"여객자동차운송사업(구역여객자동차운송사업-전세버스)"`)
-- 추가 예: `20241137420` (재공고/용역, `bidLmtIntpList`에 동일 업종명 확인)
-- 추가 예: `20240920435` (재공고/공사, `bidLmtRgnList`에 `lgdngNm`/`ctpvCd`/`sgnguCd`/`sgnguNm` 존재하지만 `sbxIntpRgnUntyCdNm`은 null, `dmLcnsLmtPrmsIntpList` 4키 확인)
-- 추가 예: `R25BK00565062` (재공고/공사, `bidPstmNomnEtpsList` 채워짐, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인)
-- 추가 예: `R25BK00782209` (재공고/공사, `bidPstmNomnEtpsList` 채워짐, `bidInfoList`는 비어있음)
-- 추가 예: `R25BK00750015` (재공고/용역, `bidPstmNomnEtpsList` 채워짐, `bidLmtIntpList` 비어있음)
-- 추가 예: `R25BK00606851` (변경공고/용역, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인, `bidPrceAlpt`/`bidPrplAlpt` 값 존재)
-- 추가 예: `R26BK01299166` (`rbidList` 채워짐: `bidClsfNo`, `bidPrgrsOrd`, `slprRcptDdlnDt`, `onbsPrnmntDt`, `bidPgstCd`, `bidPgstCdNm`, `bidPbancNm`)
-- 추가 예: `R25BK00887892` (`rbidList` 채워짐: 동일 필드, 공고 진행 차수 0/1 확인)
-- 추가 예: `T25BK00567855` (`bidLmtRgnList` 복수 행, `lgdngNm`/`ctpvCd`/`sgnguCd` 값 확인. `sbxIntpRgnUntyCdNm`은 여전히 null)
-- 추가 예: `T25BK01161170` (`bidLmtRgnList` 복수 행, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인, `sbxIntpRgnUntyCdNm`은 null)
-- 추가 예: `20150911689` (`bidLmtIntpList` 다중 업종명 확인, `bidInfoList`는 기본 필드만 확인)
-- 추가 예: `20150100563` (`bidPbancItemlist`에 `sbxDevyCndtCd`/`ibxItemCfnm`/`calDlvgdsTermYmd`/`ibxDlvgdsPlacNm`/`ibxCvlnPbancQty` 값 확인)
+### 선택 필드
+- `edoc_no` (str|null): 전자문서번호/공고문 번호
+- `usr_doc_no_val` (str|null): 사용자 문서번호
+- `pbanc_inst_unty_grp_no` (str|null): 기관 식별자
+- `pbanc_pstg_yn` (str|null): 게시 여부(Y/N)
+- `pbanc_dscr_trgt_yn` (str|null): 공개대상 여부
+- `slpr_rcpt_bgng_yn` (str|null): 접수시작 여부
+- `slpr_rcpt_ddln_yn` (str|null): 접수마감 여부
+- `onbs_prnmnt_yn` (str|null): 개찰 관련 여부
+- `bid_qlfc_end_yn` (str|null): 자격 심사 종료 여부
+- `pbanc_bfss_yn` (str|null): 사전공고 여부
+- `bid_clsf_no` (str|null): 분류 번호
+- `bid_prgrs_ord` (str|null): 진행 차수
+- `bid_pbanc_pgst_cd` (str|null): 공고게시 코드
+- `sfbr_slctn_ord` (str|null): 낙찰자선정 차수
+- `sfbr_slctn_rslt_cd` (str|null): 낙찰자선정 결과 코드
+- `doc_sbmsn_ddln_dt` (datetime|null): 문서제출 마감일시
+- `cvln_qlem_crtr_no` (str|null): 적격심사 기준 번호
+- `cvln_qlem_pgst_cd` (str|null): 적격심사 게시 코드
+- `objtdmd_term_dt` (datetime|null): 이의신청 기간
+- `bdng_amt_yn_nm` (str|null): 투찰금액 여부 표시(화면 표기용)
+- `slpr_rcpt_ddln_dt1` (datetime|null): 추가 마감일시(화면 표기용)
+
+### 포맷 규칙(공고 번호)
+- 표시용(화면/그리드): `bidPbancNum = bidPbancNo + "-" + bidPbancOrd` (예: `R26BK01292424-001`)
+- 합성키/저장용: `bid_pbanc_no` + `bid_pbanc_ord`를 별도 컬럼으로 유지(고유키)
+
+## 4. 엔티티: BidNoticeDetail (상세 기준, 추후 확정)
+- 상세 페이지 확인 후 필드 확정
+- 첨부파일, 담당자, 예가/기초금액, 일정 등 추가 예정
+
+## C. 정규화/중복/관계/테스트
+## 5. 정규화 규칙
+- 날짜/시간: `YYYY/MM/DD HH:mm` → `datetime`
+- 코드/코드명: 쌍으로 저장하여 조회/필터 모두 지원
+- Y/N 플래그: `bool`로 변환 가능한 경우 변환
+ - 금액: 콤마 제거 후 `int` 변환 (예: `1,030,000,000` → `1030000000`)
+ - 일시(초 포함): `YYYY/MM/DD HH:mm:ss` → `datetime`
+ - 사업자등록번호: 하이픈 제거 후 저장, 표시는 하이픈 포함 유지 (예: `120-86-77753` → `1208677753`)
+
+## 6. 중복 방지 키
+- UNIQUE(`bid_pbanc_no`, `bid_pbanc_ord`)
 
 ## 2.1.1 요청별 추출값 요약
 ### 목록 조회: `selectBidPbancList.do`
@@ -313,7 +364,7 @@
   - 상세 → 첨부: `untyAtchFileNo`
   - 첨부 → 다운로드: `atchFilePathNm`, `orgnlAtchFileNm`, `atchFileNm` 등이 `k00` 생성 재료로 추정
 
-## 2.3 첨부 업로드/다운로드 관련 메모 (관찰됨)
+## 2.3 첨부 업로드/다운로드 관련 메모 [관찰]
 ### `fileUpload.do` 호출 패턴
 - 동일 URL로 3회 호출됨
 - Method: `POST`, `content-type: application/x-www-form-urlencoded; charset=UTF-8`
@@ -364,7 +415,7 @@
 - `c11`(download): `k26`(path), `k31`(파일명), `k32`(zip명)
 - `c12`(end): `k26`, `k31`, `k32`
 
-## 2.2 상세 API 스키마 (관찰됨)
+## 2.2 상세 API 스키마 [관찰]
 ### 엔드포인트: `selectBidNoceDetl.do`
 - URL: `https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidNoceDetl.do`
 - Method: `POST`
@@ -654,72 +705,32 @@
 - `ErrorMsg` (str): 처리 메시지
 - `ErrorCode` (int): 처리 코드(0=정상)
 
-## 3. 엔티티: BidNoticeListItem (목록 기준)
-### 필수 필드
-- `bid_pbanc_no` (str): 입찰공고번호(예: R26BK01322795)
-- `bid_pbanc_ord` (str): 차수(예: 000)
-- `bid_pbanc_nm` (str): 입찰공고명
-- `bid_pbanc_num` (str): 표시용 공고번호-차수(예: `R26BK01292424-001`)
-- `pbanc_stts_cd` (str): 공고구분 코드
-- `pbanc_stts_cd_nm` (str): 공고구분명(등록공고/변경공고 등)
-- `prcm_bsne_se_cd` (str): 공고분류 코드
-- `prcm_bsne_se_cd_nm` (str): 공고분류명(공사/용역 등)
-- `bid_mthd_cd` (str): 입찰방식 코드
-- `bid_mthd_cd_nm` (str): 입찰방식명
-- `std_ctrt_mthd_cd` (str): 계약방법 코드
-- `std_ctrt_mthd_cd_nm` (str): 계약방법명
-- `scsbd_mthd_cd` (str): 낙찰방법 코드
-- `scsbd_mthd_cd_nm` (str): 낙찰방법명
-- `pbanc_pstg_dt` (datetime): 공고게시일시
-- `pbanc_knd_cd` (str): 공고종류 코드
-- `pbanc_knd_cd_nm` (str): 공고종류명
-- `grp_nm` (str): 기관명/조합명
-- `slpr_rcpt_ddln_dt` (datetime): 입찰마감일시
-- `pbanc_stts_grid_cd_nm` (str): 진행상태(입찰개시 등)
- - `row_num` (int): 화면 행 번호
- - `tot_cnt` (int): 전체 건수
- - `current_page` (int): 현재 페이지
- - `record_count_per_page` (int): 페이지 크기
- - `next_row_yn` (str): 다음 행 존재 여부(Y/N)
+## D. 보완 항목/트래킹
+## 2.1.2 추가 수집 필요 항목 [미확정]
+- `bidInfoList`에 `bidPbancNo/bidPbancOrd` 외 필드 존재 여부
+- `bidLmtRgnList.sbxIntpRgnUntyCdNm` 값이 채워지는 샘플
+- `dmLcnsLmtPrmsIntpList` 추가 키 존재 여부
+- `rbidList`에 결과/사유 등 추가 메타 존재 여부
+- `pbancOrgMap` vs `bidPbancMap` 키 차이 여부
 
-### 선택 필드
-- `edoc_no` (str|null): 전자문서번호/공고문 번호
-- `usr_doc_no_val` (str|null): 사용자 문서번호
-- `pbanc_inst_unty_grp_no` (str|null): 기관 식별자
-- `pbanc_pstg_yn` (str|null): 게시 여부(Y/N)
-- `pbanc_dscr_trgt_yn` (str|null): 공개대상 여부
-- `slpr_rcpt_bgng_yn` (str|null): 접수시작 여부
-- `slpr_rcpt_ddln_yn` (str|null): 접수마감 여부
-- `onbs_prnmnt_yn` (str|null): 개찰 관련 여부
-- `bid_qlfc_end_yn` (str|null): 자격 심사 종료 여부
-- `pbanc_bfss_yn` (str|null): 사전공고 여부
-- `bid_clsf_no` (str|null): 분류 번호
-- `bid_prgrs_ord` (str|null): 진행 차수
-- `bid_pbanc_pgst_cd` (str|null): 공고게시 코드
-- `sfbr_slctn_ord` (str|null): 낙찰자선정 차수
-- `sfbr_slctn_rslt_cd` (str|null): 낙찰자선정 결과 코드
-- `doc_sbmsn_ddln_dt` (datetime|null): 문서제출 마감일시
-- `cvln_qlem_crtr_no` (str|null): 적격심사 기준 번호
-- `cvln_qlem_pgst_cd` (str|null): 적격심사 게시 코드
-- `objtdmd_term_dt` (datetime|null): 이의신청 기간
-- `bdng_amt_yn_nm` (str|null): 투찰금액 여부 표시(화면 표기용)
-- `slpr_rcpt_ddln_dt1` (datetime|null): 추가 마감일시(화면 표기용)
-
-### 포맷 규칙(공고 번호)
-- 표시용(화면/그리드): `bidPbancNum = bidPbancNo + "-" + bidPbancOrd` (예: `R26BK01292424-001`)
-- 합성키/저장용: `bid_pbanc_no` + `bid_pbanc_ord`를 별도 컬럼으로 유지(고유키)
-
-## 4. 엔티티: BidNoticeDetail (상세 기준, 추후 확정)
-- 상세 페이지 확인 후 필드 확정
-- 첨부파일, 담당자, 예가/기초금액, 일정 등 추가 예정
-
-## 5. 정규화 규칙
-- 날짜/시간: `YYYY/MM/DD HH:mm` → `datetime`
-- 코드/코드명: 쌍으로 저장하여 조회/필터 모두 지원
-- Y/N 플래그: `bool`로 변환 가능한 경우 변환
- - 금액: 콤마 제거 후 `int` 변환 (예: `1,030,000,000` → `1030000000`)
- - 일시(초 포함): `YYYY/MM/DD HH:mm:ss` → `datetime`
- - 사업자등록번호: 하이픈 제거 후 저장, 표시는 하이픈 포함 유지 (예: `120-86-77753` → `1208677753`)
-
-## 6. 중복 방지 키
-- UNIQUE(`bid_pbanc_no`, `bid_pbanc_ord`)
+## 2.1.3 샘플 확보 현황
+- `bidLmtIntpList.sbxIntpRgnUntyCdNm` 채워진 샘플 확보
+  - 예: `R26BK01320434`에서 값 `"도시 및 주거환경 정비사업전문관리업"`
+  - 추가 예: `R26BK01296848` (입찰 제한/지역/업종 리스트는 비어있음)
+- 추가 예: `R26BK01294070` (입찰 제한/지역/업종 리스트는 비어있음)
+- 추가 예: `R25BK00821183` (재공고/물품, `bidPbancItemlist`에 `ibxItemCfnm`/`calDlvgdsTermYmd`/`ibxCvlnPbancQty` 등 확인)
+- 추가 예: `20241142507` (재공고/용역, `bsamtMap.bsamtCmpuOrd`=`000`, `bsamt`/`bsamtEncrVal` null)
+- 추가 예: `20241205759` (재공고/용역, `pnprDcsnMthoCd` 값 존재, `pnprRlsYn` null)
+- 추가 예: `20241137429` (재공고/용역, `bidLmtIntpList`에 업종명 `"여객자동차운송사업(구역여객자동차운송사업-전세버스)"`)
+- 추가 예: `20241137420` (재공고/용역, `bidLmtIntpList`에 동일 업종명 확인)
+- 추가 예: `20240920435` (재공고/공사, `bidLmtRgnList`에 `lgdngNm`/`ctpvCd`/`sgnguCd`/`sgnguNm` 존재하지만 `sbxIntpRgnUntyCdNm`은 null, `dmLcnsLmtPrmsIntpList` 4키 확인)
+- 추가 예: `R25BK00565062` (재공고/공사, `bidPstmNomnEtpsList` 채워짐, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인)
+- 추가 예: `R25BK00782209` (재공고/공사, `bidPstmNomnEtpsList` 채워짐, `bidInfoList`는 비어있음)
+- 추가 예: `R25BK00750015` (재공고/용역, `bidPstmNomnEtpsList` 채워짐, `bidLmtIntpList` 비어있음)
+- 추가 예: `R25BK00606851` (변경공고/용역, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인, `bidPrceAlpt`/`bidPrplAlpt` 값 존재)
+- 추가 예: `R26BK01299166` (`rbidList` 채워짐: `bidClsfNo`, `bidPrgrsOrd`, `slprRcptDdlnDt`, `onbsPrnmntDt`, `bidPgstCd`, `bidPgstCdNm`, `bidPbancNm`)
+- 추가 예: `R25BK00887892` (`rbidList` 채워짐: 동일 필드, 공고 진행 차수 0/1 확인)
+- 추가 예: `T25BK00567855` (`bidLmtRgnList` 복수 행, `lgdngNm`/`ctpvCd`/`sgnguCd` 값 확인. `sbxIntpRgnUntyCdNm`은 여전히 null)
+- 추가 예: `T25BK01161170` (`bidLmtRgnList` 복수 행, `bidInfoList`는 `bidPbancNo`/`bidPbancOrd`만 확인, `sbxIntpRgnUntyCdNm`은 null)
+- 추가 예: `20150911689` (`bidLmtIntpList` 다중 업종명 확인, `bidInfoList`는 기본 필드만 확인)
+- 추가 예: `20150100563` (`bidPbancItemlist`에 `sbxDevyCndtCd`/`ibxItemCfnm`/`calDlvgdsTermYmd`/`ibxDlvgdsPlacNm`/`ibxCvlnPbancQty` 값 확인)
