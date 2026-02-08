@@ -21,6 +21,8 @@ class Selectors(BaseModel):  # 목록/상세 공통 셀렉터 정의.
     list_published_at: Optional[str] = None  # 게시일 셀렉터.
     list_agency: Optional[str] = None  # 기관명 셀렉터.
     pagination_next: Optional[str] = None  # 다음 페이지 셀렉터.
+    detail_popup: Optional[str] = None  # 상세 팝업 컨테이너 셀렉터.
+    detail_close: Optional[str] = None  # 상세 팝업 닫기 셀렉터.
     detail_fields: DetailSelectors = Field(default_factory=DetailSelectors)  # 상세 셀렉터 그룹.
 
 
