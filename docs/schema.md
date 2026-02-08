@@ -307,21 +307,181 @@
 - 표시용(화면/그리드): `bidPbancNum = bidPbancNo + "-" + bidPbancOrd` (예: `R26BK01292424-001`)
 - 합성키/저장용: `bid_pbanc_no` + `bid_pbanc_ord`를 별도 컬럼으로 유지(고유키)
 
-## 4. 엔티티: BidNoticeDetail (상세 기준, 추후 확정)
-- 상세 페이지 확인 후 필드 확정
-- 첨부파일, 담당자, 예가/기초금액, 일정 등 추가 예정
+## 4. 엔티티: BidNoticeDetail (상세 기준, 1차 확정)
+### 필수 필드
+- 식별자: `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+- 공고명: `bid_pbanc_nm`, `bid_pbanc_num`
+- 상태: `pbanc_stts_cd`, `pbanc_stts_cd_nm`
+
+### 선택 필드
+- 분류/방식: `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`, `bid_mthd_cd`, `bid_mthd_cd_nm`,
+  `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`, `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+- 기관/담당: `pbanc_inst_unty_grp_no`, `pbanc_inst_unty_grp_no_nm`, `grp_nm`,
+  `pic_id`, `pic_id_nm`, `bid_blff_id`, `bid_blff_id_nm`, `bsne_tlph_no`, `bsne_fax_no`, `bsne_eml`
+- 일정: `pbanc_pstg_dt`, `slpr_rcpt_bgng_dt`, `slpr_rcpt_ddln_dt`, `onbs_prnmnt_dt`, `bid_qlfc_reg_dt`
+- 주소/장소: `onbs_plac_nm`, `zip`, `base_addr`, `dtl_addr`, `unty_addr`
+- 문서/식별: `edoc_no`, `usr_doc_no_val`
+- 플래그: `rbid_prms_yn`, `pbanc_pstg_yn`, `rgn_lmt_yn`, `lcns_lmt_yn`, `pnpr_use_yn`, `pnpr_rls_yn`
+- 첨부 연계: `unty_atch_file_no`
+
+### JSON 필드명 -> 도메인 필드명 매핑 (상세 핵심)
+- `bidPbancNo` -> `bid_pbanc_no`
+- `bidPbancOrd` -> `bid_pbanc_ord`
+- `bidClsfNo` -> `bid_clsf_no`
+- `bidPrgrsOrd` -> `bid_prgrs_ord`
+- `bidPbancNm` -> `bid_pbanc_nm`
+- `bidPbancNum` -> `bid_pbanc_num`
+- `pbancSttsCd` -> `pbanc_stts_cd`
+- `pbancSttsCdNm` -> `pbanc_stts_cd_nm`
+- `prcmBsneSeCd` -> `prcm_bsne_se_cd`
+- `prcmBsneSeCdNm` -> `prcm_bsne_se_cd_nm`
+- `bidMthdCd` -> `bid_mthd_cd`
+- `bidMthdCdNm` -> `bid_mthd_cd_nm`
+- `stdCtrtMthdCd` -> `std_ctrt_mthd_cd`
+- `stdCtrtMthdCdNm` -> `std_ctrt_mthd_cd_nm`
+- `scsbdMthdCd` -> `scsbd_mthd_cd`
+- `scsbdMthdCdNm` -> `scsbd_mthd_cd_nm`
+- `pbancInstUntyGrpNo` -> `pbanc_inst_unty_grp_no`
+- `pbancInstUntyGrpNoNm` -> `pbanc_inst_unty_grp_no_nm`
+- `grpNm` -> `grp_nm`
+- `picId` -> `pic_id`
+- `picIdNm` -> `pic_id_nm`
+- `bidBlffId` -> `bid_blff_id`
+- `bidBlffIdNm` -> `bid_blff_id_nm`
+- `bsneTlphNo` -> `bsne_tlph_no`
+- `bsneFaxNo` -> `bsne_fax_no`
+- `bsneEml` -> `bsne_eml`
+- `pbancPstgDt` -> `pbanc_pstg_dt`
+- `slprRcptBgngDt` -> `slpr_rcpt_bgng_dt`
+- `slprRcptDdlnDt` -> `slpr_rcpt_ddln_dt`
+- `onbsPrnmntDt` -> `onbs_prnmnt_dt`
+- `bidQlfcRegDt` -> `bid_qlfc_reg_dt`
+- `onbsPlacNm` -> `onbs_plac_nm`
+- `zip` -> `zip`
+- `baseAddr` -> `base_addr`
+- `dtlAddr` -> `dtl_addr`
+- `untyAddr` -> `unty_addr`
+- `edocNo` -> `edoc_no`
+- `usrDocNoVal` -> `usr_doc_no_val`
+- `rbidPrmsYn` -> `rbid_prms_yn`
+- `pbancPstgYn` -> `pbanc_pstg_yn`
+- `rgnLmtYn` -> `rgn_lmt_yn`
+- `lcnsLmtYn` -> `lcns_lmt_yn`
+- `pnprUseYn` -> `pnpr_use_yn`
+- `pnprRlsYn` -> `pnpr_rls_yn`
+- `untyAtchFileNo` -> `unty_atch_file_no`
+
+## 4.1 엔티티: BidOpeningSummary (개찰결과 요약, `pbancMap`)
+### 필수 필드
+- 식별자: `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+- 공고명/번호: `bid_pbanc_nm`, `bid_pbanc_num`
+- 상태: `pbanc_stts_cd`, `pbanc_stts_cd_nm`
+
+### 선택 필드
+- 분류/방식: `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`, `bid_mthd_cd`, `bid_mthd_cd_nm`,
+  `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`, `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+- 기관/담당: `pbanc_inst_unty_grp_no`, `pbanc_inst_unty_grp_no_nm`, `grp_nm`,
+  `bid_blff_id`, `bid_blff_id_nm`
+- 일정: `ibx_onbs_prnmnt_dt`, `ibx_onbs_dt`
+- 문서/식별: `edoc_no`, `usr_doc_no_val`
+
+### 연결 키
+- BidNoticeDetail 및 BidOpeningResult와 동일 키(`bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`)
+
+## 4.2 엔티티: BidOpeningResult (개찰결과, `oobsRsltList`)
+### 필수 필드
+- 식별자: `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+- 순위: `ibx_onbs_rnkg`
+- 업체: `ibx_grp_nm`
+- 금액/일시: `ibx_bdng_amt`, `ibx_slpr_rcptn_dt`
+
+### 선택 필드
+- 사업자/대표: `ibx_bzmn_reg_no`, `ibx_rprsv_nm`
+- 입찰자: `bidr_prsn_no`, `bidr_prsn_nm`
+- 사전판정: `bid_ufns_rsn_cd`, `bid_ufns_rsn_nm`, `ufns_yn`
+- 평가: `ibx_evl_scr_prpl`, `ibx_evl_scr_prce`, `ibx_evl_scr_ovrl`
+- 낙찰: `sfbr_slctn_ord`, `sfbr_slctn_rslt_cd`
+
+### 연결 키
+- `BidNoticeKey` + `bid_clsf_no`, `bid_prgrs_ord` 포함
 
 ## C. 정규화/중복/관계/테스트
-## 5. 정규화 규칙
-- 날짜/시간: `YYYY/MM/DD HH:mm` → `datetime`
-- 코드/코드명: 쌍으로 저장하여 조회/필터 모두 지원
-- Y/N 플래그: `bool`로 변환 가능한 경우 변환
- - 금액: 콤마 제거 후 `int` 변환 (예: `1,030,000,000` → `1030000000`)
- - 일시(초 포함): `YYYY/MM/DD HH:mm:ss` → `datetime`
- - 사업자등록번호: 하이픈 제거 후 저장, 표시는 하이픈 포함 유지 (예: `120-86-77753` → `1208677753`)
+## 5. 공통 응답(envelope)
+- `result` (object|list): 실제 데이터
+- `ErrorCode` (int): 0=정상, 그 외 에러
+- `ErrorMsg` (str): 오류 메시지
+- 처리: `ErrorCode != 0`이면 로그 기록 후 재시도/스킵 정책 적용
 
-## 6. 중복 방지 키
+## 6. 정규화 규칙
+- 날짜/시간: `YYYY/MM/DD HH:mm` → `datetime`
+- 일시(초 포함): `YYYY/MM/DD HH:mm:ss` → `datetime`
+- 금액: 콤마 제거 후 `int` 변환 (예: `1,030,000,000` → `1030000000`), 빈 값은 `null`
+- 코드/코드명: 쌍으로 저장하여 조회/필터 모두 지원
+- Y/N 플래그: `Y` → `True`, `N` → `False`, 그 외 `null`
+- 사업자등록번호: 하이픈 제거 후 저장, 표시는 하이픈 포함 유지 (예: `120-86-77753` → `1208677753`)
+- 문서번호: 공백/탭 제거 후 저장, 원본은 별도 보관 가능(표시용)
+
+## 7. 중복 방지 키
 - UNIQUE(`bid_pbanc_no`, `bid_pbanc_ord`)
+
+## 8. 관계 정의
+- BidNoticeListItem 1 ---- n BidNoticeDetail (키: `bid_pbanc_no`, `bid_pbanc_ord`)
+- BidNoticeDetail 1 ---- n AttachmentItem (키: `unty_atch_file_no`)
+- BidNoticeDetail 1 ---- n BidOpeningResult (키: `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`)
+
+## 9. 테스트 기준
+- 스키마 샘플 최소 5건 확보(목록 3, 상세 2 이상)
+- 필수 필드 누락/포맷 오류에 대한 validator 테스트
+- 날짜/금액/플래그 정규화 케이스 테스트
+
+## 10. 공통 키 모델 (권장)
+### 엔티티: BidNoticeKey
+- `bid_pbanc_no` (str)
+- `bid_pbanc_ord` (str)
+- `bid_clsf_no` (str|null)
+- `bid_prgrs_ord` (str|null)
+
+### 적용 범위
+- 목록행, 상세(`bidPbancMap`/`pbancOrgMap`), 개찰결과 요청/응답
+
+### 공통 필드(목록/상세 공통 분리)
+- 공통(목록행 + `bidPbancMap` + `pbancOrgMap`):
+  - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_pbanc_num`
+  - `bid_pbanc_nm`
+  - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
+  - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
+  - `bid_mthd_cd`, `bid_mthd_cd_nm`
+  - `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`
+  - `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+  - `grp_nm`
+  - `pbanc_pstg_dt`, `slpr_rcpt_ddln_dt`
+- 목록 전용:
+  - `row_num`, `tot_cnt`, `current_page`, `record_count_per_page`, `next_row_yn`
+- 상세 전용:
+  - `bid_clsf_no`, `bid_prgrs_ord`, `unty_atch_file_no`
+
+## 11. 코드/코드명 사전 (권장)
+### 엔티티: CommCd
+- `code_group` (str): 코드 그룹
+- `code` (str): 코드
+- `code_nm` (str): 코드명
+- `use_yn` (str): 사용 여부
+
+### 키 제약 (권장)
+- UNIQUE(`code_group`, `code`)
+
+## 12. 미확정 항목 트래킹 표 (권장)
+### 표 필드
+- `target` (str): 확인 대상 키/리스트
+- `status` (str): pending/verified/removed
+- `sample_id` (str): 확인한 공고번호
+- `note` (str): 결론/메모
+
+### 표 예시
+| target | status | sample_id | note |
+| --- | --- | --- | --- |
+| `bidInfoList` 추가 필드 | pending | - | 샘플 확보 필요 |
+| `pbancOrgMap` vs `bidPbancMap` 차이 | pending | - | 키 차이 비교 필요 |
 
 ## 2.1.1 요청별 추출값 요약
 ### 목록 조회: `selectBidPbancList.do`
