@@ -434,6 +434,74 @@
 - 필수 필드 누락/포맷 오류에 대한 validator 테스트
 - 날짜/금액/플래그 정규화 케이스 테스트
 
+## 9.1 CSV 저장 형식 (1차 산출물)
+### 파일 분리 원칙
+- 1:N 구조는 파일 분리 (목록/상세/개찰결과/첨부)
+- 각 파일은 UTF-8, 헤더 포함, 컬럼 순서 고정
+
+### 파일 목록 및 컬럼 순서
+- `bid_notice_list.csv`
+  - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_pbanc_num`, `bid_pbanc_nm`
+  - `pbanc_stts_cd`, `pbanc_stts_cd_nm`, `pbanc_stts_grid_cd_nm`
+  - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
+  - `bid_mthd_cd`, `bid_mthd_cd_nm`
+  - `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`
+  - `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+  - `pbanc_knd_cd`, `pbanc_knd_cd_nm`
+  - `grp_nm`, `pbanc_pstg_dt`, `slpr_rcpt_ddln_dt`
+  - `row_num`, `tot_cnt`, `current_page`, `record_count_per_page`, `next_row_yn`
+  - `edoc_no`, `usr_doc_no_val`, `pbanc_inst_unty_grp_no`
+  - `pbanc_pstg_yn`, `pbanc_dscr_trgt_yn`, `slpr_rcpt_bgng_yn`, `slpr_rcpt_ddln_yn`
+  - `onbs_prnmnt_yn`, `bid_qlfc_end_yn`, `pbanc_bfss_yn`
+  - `bid_clsf_no`, `bid_prgrs_ord`, `bid_pbanc_pgst_cd`
+  - `sfbr_slctn_ord`, `sfbr_slctn_rslt_cd`
+  - `doc_sbmsn_ddln_dt`, `cvln_qlem_crtr_no`, `cvln_qlem_pgst_cd`
+  - `objtdmd_term_dt`, `bdng_amt_yn_nm`, `slpr_rcpt_ddln_dt1`
+- `bid_notice_detail.csv`
+  - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+  - `bid_pbanc_num`, `bid_pbanc_nm`
+  - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
+  - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
+  - `bid_mthd_cd`, `bid_mthd_cd_nm`
+  - `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`
+  - `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+  - `pbanc_inst_unty_grp_no`, `pbanc_inst_unty_grp_no_nm`, `grp_nm`
+  - `pic_id`, `pic_id_nm`, `bid_blff_id`, `bid_blff_id_nm`
+  - `bsne_tlph_no`, `bsne_fax_no`, `bsne_eml`
+  - `pbanc_pstg_dt`, `slpr_rcpt_bgng_dt`, `slpr_rcpt_ddln_dt`, `onbs_prnmnt_dt`, `bid_qlfc_reg_dt`
+  - `onbs_plac_nm`, `zip`, `base_addr`, `dtl_addr`, `unty_addr`
+  - `edoc_no`, `usr_doc_no_val`
+  - `rbid_prms_yn`, `pbanc_pstg_yn`, `rgn_lmt_yn`, `lcns_lmt_yn`, `pnpr_use_yn`, `pnpr_rls_yn`
+  - `unty_atch_file_no`
+- `bid_opening_summary.csv`
+  - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+  - `bid_pbanc_num`, `bid_pbanc_nm`
+  - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
+  - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
+  - `bid_mthd_cd`, `bid_mthd_cd_nm`
+  - `std_ctrt_mthd_cd`, `std_ctrt_mthd_cd_nm`
+  - `scsbd_mthd_cd`, `scsbd_mthd_cd_nm`
+  - `pbanc_inst_unty_grp_no`, `pbanc_inst_unty_grp_no_nm`, `grp_nm`
+  - `bid_blff_id`, `bid_blff_id_nm`
+  - `ibx_onbs_prnmnt_dt`, `ibx_onbs_dt`
+  - `edoc_no`, `usr_doc_no_val`
+- `bid_opening_result.csv`
+  - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
+  - `ibx_onbs_rnkg`, `ibx_grp_nm`
+  - `ibx_bdng_amt`, `ibx_slpr_rcptn_dt`
+  - `ibx_bzmn_reg_no`, `ibx_rprsv_nm`
+  - `bidr_prsn_no`, `bidr_prsn_nm`
+  - `bid_ufns_rsn_cd`, `bid_ufns_rsn_nm`, `ufns_yn`
+  - `ibx_evl_scr_prpl`, `ibx_evl_scr_prce`, `ibx_evl_scr_ovrl`
+  - `sfbr_slctn_ord`, `sfbr_slctn_rslt_cd`
+- `attachment.csv`
+  - `unty_atch_file_no`, `atch_file_sqno`, `bsne_clsf_cd`
+  - `atch_file_knd_cd`, `atch_file_nm`, `orgnl_atch_file_nm`
+  - `file_extn_nm`, `file_sz`, `encr_bef_file_sz`
+  - `img_url`, `atch_file_dscr`, `mcsc_chck_id_val`
+  - `dwnld_prms_yn`, `kbrdr_id`, `kbrdr_nm`, `inpt_dt`
+  - `atch_file_path_nm`, `tbl_nm`, `col_nm`, `atch_file_rmrk_cn`
+
 ## 10. 공통 키 모델 (권장)
 ### 엔티티: BidNoticeKey
 - `bid_pbanc_no` (str)
