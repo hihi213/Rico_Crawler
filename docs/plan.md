@@ -21,20 +21,19 @@
         - 스키마 버전 관리: `schema_version`/`last_updated` 표기 추가
         - 국제화/문자셋 고려: 텍스트 필드 길이/문자 제한 기준 제안
 - Pydantic 모델 설계
-    - `BidNotice` 모델 + validator (amount/date)
+    - [x] `BidNotice` 모델 + validator (amount/date)
 - 저장 형식 결정
-    - **1차 저장: CSV**
-    - README에 “향후 SQLite/DB 전환 시 스키마/UNIQUE” 제안만 작성
+    - [x] **1차 저장: CSV**
 
 ## 2단계: 환경 & 설정 정리 (Day 1 오후)
 
-- `config.yaml` 작성
+- [x] `config.yaml` 작성
     - base_url, 목록/상세 path, 타임아웃, retry 횟수, 셀렉터 초안
-- Playwright 설치 및 브라우저 준비
+- [x] Playwright 설치 및 브라우저 준비
     - `playwright install`
-- 프로젝트 구조 잡기
+- [x] 프로젝트 구조 잡기
     - `src/domain`, `src/scraper`, `src/repository`, `src/service`, `src/utils`
-- 간단한 로깅 설정 (structlog 또는 logging 한쪽 선택)
+- [x] 간단한 로깅 설정 (structlog 또는 logging 한쪽 선택)
     
 
 ## 3단계: 크롤링 루프 MVP (Day 2)

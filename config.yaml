@@ -7,16 +7,16 @@ crawl:
   retry_backoff_sec: 1.5
   user_agent: "RiCO-NuriCrawler/1.0"
   selectors:
-    list_row: "CSS_SELECTOR_FOR_LIST_ROW"
-    list_link: "CSS_SELECTOR_FOR_DETAIL_LINK"
+    list_row: "#mf_wfm_container_grdBidPbancList_body_tbody tr"
+    list_link: "#mf_wfm_container_grdBidPbancList_body_tbody td[col_id=\"bidPbancNm\"] a"
     list_notice_no: null
     list_title: null
     list_published_at: null
     list_agency: null
-    pagination_next: null
+    pagination_next: "#mf_wfm_container_pagelist_next_btn"
     detail_fields:
-      budget_amount: "CSS_SELECTOR_FOR_BUDGET"
-      bid_start_at: "CSS_SELECTOR_FOR_BID_START"
-      bid_end_at: "CSS_SELECTOR_FOR_BID_END"
+      budget_amount: null
+      bid_start_at: null
+      bid_end_at: null
 sqlite_path: "data/nuri.db"
 log_level: "INFO"
