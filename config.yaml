@@ -1,0 +1,22 @@
+crawl:
+  base_url: "https://nuri.g2b.go.kr/"
+  list_url: "https://nuri.g2b.go.kr/index.do?w2xPath=/ui/nn/nnb/nnba/BidPbancL.xml"
+  max_pages: 3
+  timeout_ms: 15000
+  retry_count: 3
+  retry_backoff_sec: 1.5
+  user_agent: "RiCO-NuriCrawler/1.0"
+  selectors:
+    list_row: "#mf_wfm_container_grdBidPbancList_body_tbody tr"
+    list_link: "#mf_wfm_container_grdBidPbancList_body_tbody td[col_id=\"bidPbancNm\"] a"
+    list_notice_no: null
+    list_title: null
+    list_published_at: null
+    list_agency: null
+    pagination_next: "#mf_wfm_container_pagelist_next_btn"
+    detail_fields:
+      budget_amount: null
+      bid_start_at: null
+      bid_end_at: null
+sqlite_path: "data/nuri.db"
+log_level: "INFO"
