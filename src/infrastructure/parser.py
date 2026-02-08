@@ -31,20 +31,11 @@ class NoticeParser:  # 파싱 로직 인터페이스.
         self._logger.info("parsed_list_rows=%s", len(items))  # 파싱 결과 로그.
         return items  # 원본 맵 리스트 반환.
 
-    def parse_detail(self, page: Any) -> dict[str, Any]:  # 상세 파싱.
-        detail: dict[str, Any] = {}  # 상세 필드 결과.
-        fields = self._selectors.detail_fields  # 상세 셀렉터 묶음.
-        if fields.budget_amount:  # 예산 셀렉터가 있으면.
-            detail["budget_amount"] = (  # 예산 값 저장.
-                page.locator(fields.budget_amount).first.inner_text().strip()
-            )
-        if fields.bid_start_at:  # 시작일 셀렉터가 있으면.
-            detail["bid_start_at"] = (  # 시작일 값 저장.
-                page.locator(fields.bid_start_at).first.inner_text().strip()
-            )
-        if fields.bid_end_at:  # 마감일 셀렉터가 있으면.
-            detail["bid_end_at"] = (  # 마감일 값 저장.
-                page.locator(fields.bid_end_at).first.inner_text().strip()
-            )
-        self._logger.info("parsed_detail_fields=%s", list(detail.keys()))  # 상세 파싱 로그.
-        return detail  # 상세 결과 반환.
+    def parse_detail(self, payload: dict[str, Any]) -> dict[str, Any]:  # 상세 파싱.
+        result = payload.get("result", {}) if isinstance(payload, dict) else {}  # 응답 안전 처리.
+        detail = result.get("bidPbancMap", {})  # 상세 핵심 맵 추출.
+        if not isinstance(detail, dict):  # 예상 타입이 아니면.
+            self._logger.warning("detail_payload_invalid")  # 경고 로그.
+            return {}  # 빈 결과 반환.
+        self._logger.info("parsed_detail_keys=%s", len(detail))  # 상세 파싱 로그.
+        return detail  # 상세 원본 맵 반환.

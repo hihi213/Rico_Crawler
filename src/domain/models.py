@@ -115,7 +115,7 @@ class BidNoticeListItem(BidNoticeKey):  # 목록 공고 모델.
     scsbd_mthd_cd_nm: str  # 낙찰방법 코드명.
     grp_nm: str  # 기관명/조합명.
     pbanc_pstg_dt: datetime  # 공고게시일시.
-    slpr_rcpt_ddln_dt: datetime  # 입찰마감일시.
+    slpr_rcpt_ddln_dt: Optional[datetime]  # 입찰마감일시.
     pbanc_knd_cd: str  # 공고종류 코드.
     pbanc_knd_cd_nm: str  # 공고종류 코드명.
     pbanc_stts_grid_cd_nm: str  # 진행상태(그리드 표기).

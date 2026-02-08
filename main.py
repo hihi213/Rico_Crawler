@@ -7,6 +7,7 @@ import time  # interval 모드 대기.
 from src.core.config import load_config  # 설정 로더.
 from src.core.logging import setup_logging  # 로깅 설정.
 from src.infrastructure.browser import BrowserController  # 브라우저 컨트롤러.
+from src.infrastructure.checkpoint import CheckpointStore  # 체크포인트.
 from src.infrastructure.parser import NoticeParser  # 파서.
 from src.infrastructure.repository import NoticeRepository  # 저장소.
 from src.service.crawler_service import CrawlerService  # 서비스.
@@ -29,7 +30,8 @@ def main() -> None:  # 메인 진입점.
 
     repo = NoticeRepository(config.sqlite_path)  # 저장소 초기화.
     parser = NoticeParser(config.crawl.selectors)  # 파서 초기화.
-    service = CrawlerService(config.crawl, repo, parser)  # 서비스 초기화.
+    checkpoint = CheckpointStore(config.checkpoint_path)  # 체크포인트 저장소.
+    service = CrawlerService(config.crawl, repo, parser, checkpoint)  # 서비스 초기화.
 
     with BrowserController(config.crawl) as browser:  # 브라우저 컨텍스트 시작.
         page = browser.new_page()  # 새 페이지 생성.

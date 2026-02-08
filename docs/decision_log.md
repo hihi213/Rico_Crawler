@@ -267,6 +267,19 @@
 - 컬럼 순서 고정으로 스키마 비교/회귀 검증이 쉬움
 - 중단 후 재실행 시 결과를 보존하기 위해 append가 적합
 
+## 목록 마감일 필드 Optional 처리 (2026-02-09)
+
+### 결정
+- `BidNoticeListItem.slpr_rcpt_ddln_dt`를 Optional로 완화
+
+### 이유(실무 관점)
+- 실제 목록 API 응답에서 `slprRcptDdlnDt`가 null로 내려오는 케이스가 확인됨
+- 공고 상태/유형에 따라 마감일이 미확정일 수 있어 필수로 강제하면 검증 실패가 발생
+
+### 진행 과정
+1) 목록 API 1페이지 수집 중 `slprRcptDdlnDt=null` 케이스 확인
+2) 스키마/모델 불일치 판단 후 Optional로 조정
+
 ## Service 목록 변환/저장 책임 분리
 
 ### 결정

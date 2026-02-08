@@ -1,14 +1,50 @@
 crawl:
   base_url: "https://nuri.g2b.go.kr/"
   list_url: "https://nuri.g2b.go.kr/index.do?w2xPath=/ui/nn/nnb/nnba/BidPbancL.xml"
+  list_api_url: "https://nuri.g2b.go.kr/nn/nnb/nnba/selectBidPbancList.do"
+  detail_api_url: "https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidPbancPrgsDetl.do"
   max_pages: 3
   timeout_ms: 15000
   retry_count: 3
   retry_backoff_sec: 1.5
   user_agent: "RiCO-NuriCrawler/1.0"
+  list_api_headers:
+    Accept: "application/json"
+    Content-Type: "application/json;charset=UTF-8"
+    Menu-Info: "{\"menuNo\":\"15401\",\"menuCangVal\":\"NNBA001_01\",\"bsneClsfCd\":\"%EC%97%85130031\",\"scrnNo\":\"00777\"}"
+    Target-Id: "btnS0001"
+    Usr-Id: "null"
+    Origin: "https://nuri.g2b.go.kr"
+    Referer: "https://nuri.g2b.go.kr/"
+  list_api_payload:
+    bidPbancNo: ""
+    bidPbancOrd: ""
+    bidPbancNm: ""
+    prcmBsneSeCd: ""
+    bidPbancPgstCd: ""
+    bidMthdCd: ""
+    pbancPstgStDt: "20260110"
+    pbancPstgEdDt: "20260209"
+    onbsPrnmntStDt: "20260209"
+    onbsPrnmntEdDt: "20260311"
+    recordCountPerPage: "10"
+    rowNum: ""
+    kbrdrId: ""
+    pbancInstUntyGrpNo: ""
+    pdngYn: ""
+    currentPage: 1
+    pbancSttsCd: ""
+    pbancKndCd: ""
+    stdCtrtMthdCd: ""
+    scsbdMthdCd: ""
+    untyGrpNo: ""
+    usrTyCd: ""
+    pbancPstgYn: "Y"
+    frgnrRprsvYn: ""
   selectors:
-    list_row: "#mf_wfm_container_grdBidPbancList_body_tbody tr"
-    list_link: "#mf_wfm_container_grdBidPbancList_body_tbody td[col_id=\"bidPbancNm\"] a"
+    list_row: "#mf_grdBidPbancList_body_tbody tr"
+    list_link: "#mf_grdBidPbancList_body_tbody td[col_id=\"bidPbancNm\"]"
+    search_button: "#mf_btnS0001"
     list_notice_no: null
     list_title: null
     list_published_at: null
@@ -21,4 +57,5 @@ crawl:
       bid_start_at: null
       bid_end_at: null
 sqlite_path: "data/nuri.db"
+checkpoint_path: "data/checkpoint.json"
 log_level: "INFO"
