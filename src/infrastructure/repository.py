@@ -77,10 +77,10 @@ class NoticeRepository:
         return self._write_csv(self._opening_result_path, rows, BidOpeningResult)
 
     def _write_csv(self, path: Path, rows: list[dict[str, Any]], model_type: type) -> int:
-        if not rows:
-            return 0
         fieldnames = list(model_type.model_fields.keys())
         file_exists = path.exists()
+        if not rows:
+            return 0
         with path.open("a", newline="", encoding="utf-8") as fp:
             writer = csv.DictWriter(fp, fieldnames=fieldnames)
             if not file_exists:
