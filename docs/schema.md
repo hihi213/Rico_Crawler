@@ -551,6 +551,21 @@
 | `bidInfoList` 추가 필드 | pending | - | 샘플 확보 필요 |
 | `pbancOrgMap` vs `bidPbancMap` 차이 | pending | - | 키 차이 비교 필요 |
 
+### 현재 미확정 항목(샘플 확보 필요)
+| target | status | sample_id | note |
+| --- | --- | --- | --- |
+| `bidPbancItemlist` | pending | - | 상세 응답 하위 리스트 구조 확인 필요 |
+| `bidLmtRgnList` | pending | - | 지역 제한 리스트 스키마 확인 필요 |
+| `bidLmtIntpList` | pending | - | 제한 조건 리스트 스키마 확인 필요 |
+| `dmLcnsLmtPrmsIntpList` | pending | - | 면허 제한 리스트 스키마 확인 필요 |
+| `rbidList` | pending | - | 재입찰 리스트 스키마 확인 필요 |
+| `bdngCrstList` | pending | - | 투찰 기준 리스트 스키마 확인 필요 |
+| `bidPstmNomnEtpsList` | pending | - | 지명 업체 리스트 스키마 확인 필요 |
+| `bidInfoList` | pending | - | 추가 정보 리스트 스키마 확인 필요 |
+| `bsamtMap` | pending | - | 예산/금액 맵 스키마 확인 필요 |
+| `pbancOrgMap` | pending | - | bidPbancMap과의 키 차이 확인 필요 |
+| `grdLisList` | pending | - | 개찰결과 요약 리스트 스키마 확인 필요 |
+
 ## 2.1.1 요청별 추출값 요약
 ### 목록 조회: `selectBidPbancList.do`
 - 요청 payload: `dlParamM` (기간/페이지/필터)

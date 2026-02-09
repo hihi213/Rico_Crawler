@@ -2,6 +2,7 @@ from __future__ import annotations  # 타입 힌트 전방 참조 허용.
 
 import json  # JSON 직렬화.
 import logging  # 로깅.
+from datetime import datetime  # 타임스탬프 생성.
 from datetime import datetime, timedelta  # 날짜 처리 모듈.
 from typing import Any, Optional  # 범용 타입과 선택적 타입.
 
@@ -19,6 +20,7 @@ from src.domain.models import (
 from src.infrastructure.checkpoint import CheckpointStore, CrawlCheckpoint  # 체크포인트 저장소.
 from src.infrastructure.parser import NoticeParser  # 파서 인터페이스.
 from src.infrastructure.repository import NoticeRepository  # 저장소 인터페이스.
+from src.infrastructure.snapshot import SnapshotStore  # 스냅샷 저장소.
 
 
 class CrawlerService:  # 크롤링 비즈니스 로직 계층.
@@ -34,6 +36,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         self._parser = parser  # 파서 보관.
         self._checkpoint = checkpoint  # 체크포인트 보관.
         self._logger = logging.getLogger("service")  # 로거 생성.
+        self._snapshot = SnapshotStore(config.snapshot_dir) if config.snapshot_enabled else None  # 스냅샷 저장소.
 
     def run(self, page: Any, max_pages: Optional[int]) -> None:  # 실행 진입점
         target_pages = self._config.max_pages  # 기본 페이지 수.
@@ -237,6 +240,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 headers=self._config.detail_api_headers,
             )
             body = resp.json()
+            self._maybe_snapshot_detail(item, body)  # 미확정 항목이 있으면 스냅샷 저장.
             if body.get("ErrorCode") != 0:
                 raise RuntimeError(f"detail_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
             return self._parser.parse_detail(body)
@@ -394,6 +398,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 headers=self._config.opening_api_headers,
             )
             body = resp.json()
+            self._maybe_snapshot_opening(item, body)  # 미확정 항목이 있으면 스냅샷 저장.
             if body.get("ErrorCode") != 0:
                 raise RuntimeError(f"opening_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
             return self._parser.parse_opening(body)
@@ -574,6 +579,61 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             if target:  # 매핑 대상이면.
                 mapped[target] = value  # 변환 저장.
         return mapped  # 변환 결과 반환.
+
+    def _maybe_snapshot_detail(self, item: BidNoticeListItem, body: dict[str, Any]) -> None:  # 상세 스냅샷.
+        if not self._snapshot:  # 스냅샷 비활성.
+            return  # 종료.
+        result = body.get("result", {}) if isinstance(body, dict) else {}  # 응답 안전 처리.
+        unexpected = self._find_unexpected_keys(
+            result,
+            {
+                "bidPbancMap",
+                "pbancOrgMap",
+                "bidPbancItemlist",
+                "bidLmtRgnList",
+                "bidLmtIntpList",
+                "dmLcnsLmtPrmsIntpList",
+                "rbidList",
+                "bdngCrstList",
+                "bidPstmNomnEtpsList",
+                "bidInfoList",
+                "bidBsneCndtCrtrCdMap",
+                "bsamtMap",
+            },
+        )
+        if not unexpected:  # 예상 외 키가 없으면.
+            return  # 저장 생략.
+        key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
+        payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
+        self._snapshot.save("detail", key, payload)  # 스냅샷 저장.
+        self._logger.info("snapshot_saved type=detail key=%s unexpected=%s", key, unexpected)  # 저장 로그.
+
+    def _maybe_snapshot_opening(self, item: BidNoticeListItem, body: dict[str, Any]) -> None:  # 개찰 스냅샷.
+        if not self._snapshot:  # 스냅샷 비활성.
+            return  # 종료.
+        result = body.get("result", {}) if isinstance(body, dict) else {}  # 응답 안전 처리.
+        unexpected = self._find_unexpected_keys(result, {"pbancMap", "grdLisList", "oobsRsltList"})
+        if not unexpected:  # 예상 외 키가 없으면.
+            return  # 저장 생략.
+        key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
+        payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
+        self._snapshot.save("opening", key, payload)  # 스냅샷 저장.
+        self._logger.info("snapshot_saved type=opening key=%s unexpected=%s", key, unexpected)  # 저장 로그.
+
+    def _find_unexpected_keys(self, result: dict[str, Any], expected: set[str]) -> list[str]:  # 예상 외 키 탐지.
+        if not isinstance(result, dict):  # 타입 방어.
+            return []  # 비교 불가.
+        unexpected = [key for key in result.keys() if key not in expected]  # 예상 외 키 수집.
+        return sorted(unexpected)  # 정렬 반환.
+
+    def _wrap_snapshot_payload(self, body: dict[str, Any], unexpected: list[str]) -> dict[str, Any]:  # 스냅샷 래핑.
+        return {
+            "meta": {
+                "timestamp": datetime.now().isoformat(),
+                "unexpected_keys": unexpected,
+            },
+            "body": body,
+        }
 
     def _build_detail_from_list(  # 상세 기본값 생성.
         self,
