@@ -45,7 +45,7 @@ class CrawlerService:
         saved = self._checkpoint.load()
         if saved is not None:
             start_page = max(1, saved.current_page)
-        self._logger.info("crawl_start pages=%s", target_pages)
+        self._logger.info("수집 시작 페이지=%s", target_pages)
         if self._config.list_api_url:
             for page_index in range(start_page, target_pages + 1):
                 raw_rows = self._fetch_list_via_api(page, page_index)
@@ -91,7 +91,7 @@ class CrawlerService:
                 if opening_results:  # 개찰 결과 저장.
                     self._repo.save_opening_result_items(opening_results)
                 self._logger.info(
-                    "page_saved page=%s list=%s detail=%s noce=%s attach=%s opening_summary=%s opening_result=%s",
+                    "페이지 저장 완료 페이지=%s 목록=%s 상세=%s 공지=%s 첨부=%s 개찰요약=%s 개찰결과=%s",
                     page_index,
                     len(items),
                     len(detail_items),
@@ -101,7 +101,7 @@ class CrawlerService:
                     len(opening_results),
                 )
                 self._logger.info(
-                    "page_skipped page=%s list=%s noce=%s attach=%s opening_summary=%s opening_result=%s",
+                    "페이지 건너뜀 페이지=%s 목록=%s 공지=%s 첨부=%s 개찰요약=%s 개찰결과=%s",
                     page_index,
                     list_skipped,
                     noce_skipped,
@@ -110,7 +110,7 @@ class CrawlerService:
                     opening_row_skipped,
                 )
                 self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
-            self._logger.info("crawl_done")  # 종료 로그.
+            self._logger.info("수집 완료")  # 종료 로그.
             return  # API 경로는 여기서 종료.
         page.goto(self._config.list_url, wait_until="networkidle")  # 목록 페이지 이동.
         if self._config.selectors.search_button:  # 검색 버튼이 설정된 경우.
@@ -132,7 +132,7 @@ class CrawlerService:
                 try:
                     detail_item = self._build_detail_from_list(item, detail_data)  # 상세 생성.
                 except Exception as exc:
-                    self._logger.warning("detail_row_skip err=%s key=%s", exc, item.bid_pbanc_no)
+                    self._logger.warning("상세 행 건너뜀 오류=%s 키=%s", exc, item.bid_pbanc_no)
                     detail_skipped += 1
                     continue
                 detail_items.append(detail_item)  # 상세 저장 목록에 추가.
@@ -141,22 +141,22 @@ class CrawlerService:
             if detail_items:  # 상세 항목이 있으면.
                 self._repo.save_detail_items(detail_items)  # 상세 저장.
             self._logger.info(
-                "page_skipped page=%s list=%s detail=%s", page_index, list_skipped, detail_skipped
+                "페이지 건너뜀 페이지=%s 목록=%s 상세=%s", page_index, list_skipped, detail_skipped
             )
             if page_index >= target_pages:  # 마지막 페이지면 종료.
                 break  # 루프 종료.
             if not self._config.selectors.pagination_next:  # 다음 버튼 없으면.
-                self._logger.info("pagination_selector_missing")  # 로그.
+                self._logger.info("페이지네이션 셀렉터 없음")  # 로그.
                 break  # 종료.
             next_button = page.locator(self._config.selectors.pagination_next)  # 다음 버튼.
             if next_button.count() == 0:  # 버튼이 없으면.
-                self._logger.info("pagination_next_missing")  # 로그.
+                self._logger.info("다음 페이지 버튼 없음")  # 로그.
                 break  # 종료.
             next_button.first.click()  # 다음 페이지 클릭.
             page.wait_for_load_state("networkidle")  # 로딩 대기.
             page.wait_for_selector(self._config.selectors.list_row)  # 목록 로드 대기.
             self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
-        self._logger.info("crawl_done")  # 종료 로그.
+        self._logger.info("수집 완료")  # 종료 로그.
 
     def _fetch_list_via_api(self, page: Any, current_page: int) -> list[dict[str, Any]]:  # 목록 API 호출.
         @retry(
@@ -166,14 +166,14 @@ class CrawlerService:
             reraise=True,
         )
         def _call() -> list[dict[str, Any]]:
-            self._logger.info("list_api_call page=%s", current_page)  # 호출 시작 로그.
+            self._logger.info("목록 API 호출 시작 페이지=%s", current_page)  # 호출 시작 로그.
             payload = self._build_list_payload(current_page)  # 유효성 검증 포함 페이로드 구성.
             resp = page.request.post(  # API 호출.
                 self._config.list_api_url,
                 data=json.dumps({"dlParamM": payload}),
                 headers=self._config.list_api_headers,
             )
-            self._logger.info("list_api_response page=%s status=%s", current_page, resp.status)  # 응답 상태 로그.
+            self._logger.info("목록 API 응답 페이지=%s 상태=%s", current_page, resp.status)  # 응답 상태 로그.
             body = resp.json()  # JSON 파싱.
             self._maybe_snapshot_list(current_page, body)  # 원본 스냅샷 저장.
             if body.get("ErrorCode") != 0:  # 오류 처리.
@@ -186,7 +186,7 @@ class CrawlerService:
         try:
             return _call()
         except Exception as exc:
-            self._logger.warning("list_api_skip err=%s page=%s", exc, current_page, exc_info=True)
+            self._logger.warning("목록 API 실패 건너뜀 오류=%s 페이지=%s", exc, current_page, exc_info=True)
             return []
 
     def _build_list_payload(self, current_page: int) -> dict[str, Any]:  # 목록 페이로드 구성.
@@ -247,7 +247,7 @@ class CrawlerService:
                 list_item = BidNoticeListItem(**mapped)  # 모델 생성.
                 items.append(list_item)  # 목록 추가.
             except Exception as exc:  # 검증 실패.
-                self._logger.warning("list_row_skip err=%s raw=%s", exc, raw)  # 스킵 로그.
+                self._logger.warning("목록 행 건너뜀 오류=%s raw=%s", exc, raw)  # 스킵 로그.
                 skipped += 1
                 continue  # 다음 행.
         return items, skipped
@@ -269,7 +269,7 @@ class CrawlerService:
                 if item.bid_pbanc_pgst_cd == self._config.list_filter_bid_pbanc_pgst_cd
             ]
         if len(filtered) != len(items):  # 필터로 줄어들었으면.
-            self._logger.info("list_filtered before=%s after=%s", len(items), len(filtered))
+            self._logger.info("목록 필터 적용 전=%s 후=%s", len(items), len(filtered))
         return filtered
 
     def _fetch_detail_via_api(self, page: Any, item: BidNoticeListItem) -> dict[str, Any]:  # 상세 API 호출.
@@ -307,7 +307,7 @@ class CrawlerService:
         try:
             return _call()
         except Exception as exc:
-            self._logger.warning("detail_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            self._logger.warning("상세 API 실패 건너뜀 오류=%s 키=%s", exc, item.bid_pbanc_no)
             return {}
 
     def _build_noce_items(self, page: Any, item: BidNoticeListItem) -> tuple[list[NoceItem], int]:
@@ -344,7 +344,7 @@ class CrawlerService:
         try:
             rows = _call()
         except Exception as exc:
-            self._logger.warning("noce_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            self._logger.warning("공지 API 실패 건너뜀 오류=%s 키=%s", exc, item.bid_pbanc_no)
             return [], 0
         results: list[NoceItem] = []
         skipped = 0
@@ -362,7 +362,7 @@ class CrawlerService:
             try:
                 results.append(NoceItem(**mapped))
             except Exception as exc:
-                self._logger.warning("noce_row_skip err=%s raw=%s", exc, row)
+                self._logger.warning("공지 행 건너뜀 오류=%s raw=%s", exc, row)
                 skipped += 1
         return results, skipped
 
@@ -399,7 +399,7 @@ class CrawlerService:
         try:
             rows = _call()
         except Exception as exc:
-            self._logger.warning("attachment_api_skip err=%s key=%s", exc, unty_atch_file_no)
+            self._logger.warning("첨부 API 실패 건너뜀 오류=%s 키=%s", exc, unty_atch_file_no)
             return [], 0
         results: list[AttachmentItem] = []
         skipped = 0
@@ -429,7 +429,7 @@ class CrawlerService:
             try:
                 results.append(AttachmentItem(**mapped))
             except Exception as exc:
-                self._logger.warning("attachment_row_skip err=%s raw=%s", exc, row)
+                self._logger.warning("첨부 행 건너뜀 오류=%s raw=%s", exc, row)
                 skipped += 1
         return results, skipped
 
@@ -471,7 +471,7 @@ class CrawlerService:
         try:
             summary_raw, rows_raw = _call()
         except Exception as exc:
-            self._logger.warning("opening_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            self._logger.warning("개찰 API 실패 건너뜀 오류=%s 키=%s", exc, item.bid_pbanc_no)
             return None, [], 0, 0
         summary = None
         summary_skipped = 0
@@ -480,7 +480,7 @@ class CrawlerService:
             try:
                 summary = BidOpeningSummary(**mapped)
             except Exception as exc:
-                self._logger.warning("opening_summary_skip err=%s raw=%s", exc, summary_raw)
+                self._logger.warning("개찰 요약 건너뜀 오류=%s raw=%s", exc, summary_raw)
                 summary_skipped += 1
         results: list[BidOpeningResult] = []
         row_skipped = 0
@@ -489,7 +489,7 @@ class CrawlerService:
             try:
                 results.append(BidOpeningResult(**mapped))
             except Exception as exc:
-                self._logger.warning("opening_row_skip err=%s raw=%s", exc, row)
+                self._logger.warning("개찰 행 건너뜀 오류=%s raw=%s", exc, row)
                 row_skipped += 1
         return summary, results, summary_skipped, row_skipped
 
@@ -585,7 +585,7 @@ class CrawlerService:
         try:
             return _call()
         except Exception as exc:
-            self._logger.warning("detail_fetch_skip err=%s index=%s", exc, index)
+            self._logger.warning("상세 가져오기 건너뜀 오류=%s index=%s", exc, index)
             return {}
 
     def _close_detail(self, page: Any) -> None:  # 상세 팝업 닫기.
@@ -676,7 +676,7 @@ class CrawlerService:
         key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
         payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
         self._snapshot.save(f"detail_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
-        self._logger.info("snapshot_saved type=detail key=%s unexpected=%s", key, unexpected)  # 저장 로그.
+        self._logger.info("스냅샷 저장 완료 유형=상세 키=%s 예기치않은키=%s", key, unexpected)  # 저장 로그.
 
     def _maybe_snapshot_opening(self, item: BidNoticeListItem, body: dict[str, Any]) -> None:  # 개찰 스냅샷.
         if not self._snapshot:  # 스냅샷 비활성.
@@ -688,7 +688,7 @@ class CrawlerService:
         key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
         payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
         self._snapshot.save(f"opening_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
-        self._logger.info("snapshot_saved type=opening key=%s unexpected=%s", key, unexpected)  # 저장 로그.
+        self._logger.info("스냅샷 저장 완료 유형=개찰 키=%s 예기치않은키=%s", key, unexpected)  # 저장 로그.
 
     def _find_unexpected_keys(self, result: dict[str, Any], expected: set[str]) -> list[str]:  # 예상 외 키 탐지.
         if not isinstance(result, dict):  # 타입 방어.
@@ -713,7 +713,7 @@ class CrawlerService:
         key = f"page_{page_index}"  # 파일 키 구성.
         payload = self._wrap_snapshot_payload(body, [])  # 메타 포함 래핑.
         self._snapshot.save(f"list_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
-        self._logger.info("snapshot_saved type=list key=%s mode=%s", key, self._config.snapshot_mode)
+        self._logger.info("스냅샷 저장 완료 유형=목록 키=%s 모드=%s", key, self._config.snapshot_mode)
 
     def _build_detail_from_list(  # 상세 기본값 생성.
         self,

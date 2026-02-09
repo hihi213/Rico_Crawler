@@ -30,25 +30,25 @@ class NoticeParser:
                 cell_map[col_id] = text
             if cell_map:
                 items.append(cell_map)
-        self._logger.info("parsed_list_rows=%s", len(items))
+        self._logger.info("목록 파싱 완료 행=%s", len(items))
         return items
 
     def parse_detail(self, payload: dict[str, Any]) -> dict[str, Any]:
         result = payload.get("result", {}) if isinstance(payload, dict) else {}
         detail = result.get("bidPbancMap", {})
         if not isinstance(detail, dict):
-            self._logger.warning("detail_payload_invalid")
+            self._logger.warning("상세 응답 포맷 오류")
             return {}
-        self._logger.info("parsed_detail_keys=%s", len(detail))
+        self._logger.info("상세 파싱 완료 키=%s", len(detail))
         return detail
 
     def parse_noce(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         result = payload.get("result", {}) if isinstance(payload, dict) else {}
         items = result.get("noceList", [])
         if not isinstance(items, list):
-            self._logger.warning("noce_payload_invalid")
+            self._logger.warning("공지 응답 포맷 오류")
             return []
-        self._logger.info("parsed_noce_rows=%s", len(items))
+        self._logger.info("공지 파싱 완료 행=%s", len(items))
         return items
 
     def parse_opening(self, payload: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -59,13 +59,13 @@ class NoticeParser:
             summary = {}
         if not isinstance(rows, list):
             rows = []
-        self._logger.info("parsed_opening summary_keys=%s rows=%s", len(summary), len(rows))
+        self._logger.info("개찰 파싱 완료 요약키=%s 행=%s", len(summary), len(rows))
         return summary, rows
 
     def parse_attachments(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         result = payload.get("dlUntyAtchFileL", []) if isinstance(payload, dict) else []
         if not isinstance(result, list):
-            self._logger.warning("attachment_payload_invalid")
+            self._logger.warning("첨부 응답 포맷 오류")
             return []
-        self._logger.info("parsed_attachment_rows=%s", len(result))
+        self._logger.info("첨부 파싱 완료 행=%s", len(result))
         return result

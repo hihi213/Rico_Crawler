@@ -36,35 +36,35 @@ def run_cmd(args: list[str]) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logger = logging.getLogger("setup")
+    logger = logging.getLogger("install")
 
     project_root = Path(__file__).resolve().parent
     venv_dir = project_root / "venv"
     os_name = detect_os()
 
     if os_name == "unknown":
-        logger.error("Unsupported OS. Please run setup manually.")
+        logger.error("지원되지 않는 운영체제입니다. 수동 설치를 진행하세요.")
         sys.exit(1)
 
-    logger.info("[1/3] Creating venv")
+    logger.info("[1/3] 가상환경 생성")
     if not venv_dir.exists():
         run_cmd([sys.executable, "-m", "venv", str(venv_dir)])
     else:
-        logger.info("venv already exists: %s", venv_dir)
+        logger.info("가상환경이 이미 존재합니다: %s", venv_dir)
 
     python_path = venv_python_path(venv_dir, os_name)
     pip_path = venv_pip_path(venv_dir, os_name)
 
-    logger.info("[2/3] Installing dependencies")
+    logger.info("[2/3] 의존성 설치")
     run_cmd([str(pip_path), "install", "-r", "requirements.txt"])
 
-    logger.info("[3/3] Installing Playwright browsers")
+    logger.info("[3/3] Playwright 브라우저 설치")
     if os_name == "linux":
         run_cmd([str(python_path), "-m", "playwright", "install", "--with-deps"])
     else:
         run_cmd([str(python_path), "-m", "playwright", "install"])
 
-    logger.info("Setup completed")
+    logger.info("설치 완료")
 
 
 if __name__ == "__main__":

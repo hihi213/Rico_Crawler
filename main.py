@@ -35,15 +35,15 @@ def main() -> None:  # 메인 진입점.
     if args.filter_pbanc_knd_cd is not None:
         config.crawl.list_api_payload["pbancKndCd"] = args.filter_pbanc_knd_cd
         config.crawl.list_filter_pbanc_knd_cd = args.filter_pbanc_knd_cd
-        logger.info("cli_filter pbanc_knd_cd=%s", args.filter_pbanc_knd_cd)
+        logger.info("CLI 필터 적용: 공고종류=%s", args.filter_pbanc_knd_cd)
     if args.filter_pbanc_stts_cd is not None:
         config.crawl.list_api_payload["pbancSttsCd"] = args.filter_pbanc_stts_cd
         config.crawl.list_filter_pbanc_stts_cd = args.filter_pbanc_stts_cd
-        logger.info("cli_filter pbanc_stts_cd=%s", args.filter_pbanc_stts_cd)
+        logger.info("CLI 필터 적용: 공고상태=%s", args.filter_pbanc_stts_cd)
     if args.filter_bid_pgst_cd is not None:
         config.crawl.list_api_payload["bidPbancPgstCd"] = args.filter_bid_pgst_cd
         config.crawl.list_filter_bid_pbanc_pgst_cd = args.filter_bid_pgst_cd
-        logger.info("cli_filter bid_pgst_cd=%s", args.filter_bid_pgst_cd)
+        logger.info("CLI 필터 적용: 진행상태=%s", args.filter_bid_pgst_cd)
 
     repo = NoticeRepository(config.sqlite_path)  # 저장소 초기화.
     parser = NoticeParser(config.crawl.selectors)  # 파서 초기화.
@@ -55,16 +55,16 @@ def main() -> None:  # 메인 진입점.
         if args.mode == "once":  # 단발 실행.
             if args.reset_checkpoint:
                 checkpoint.clear()
-                logger.info("checkpoint_reset")
+                logger.info("체크포인트 초기화")
             service.run(page, args.max_pages)  # 크롤링 실행.
         else:  # interval 실행.
             while True:  # 반복 실행.
-                logger.info("interval crawl start")  # 시작 로그.
+                logger.info("주기 실행 시작")  # 시작 로그.
                 if args.reset_checkpoint:
                     checkpoint.clear()
-                    logger.info("checkpoint_reset")
+                    logger.info("체크포인트 초기화")
                 service.run(page, args.max_pages)  # 크롤링 실행.
-                logger.info("interval crawl sleep=%s sec", args.interval_sec)  # 대기 로그.
+                logger.info("주기 대기=%s초", args.interval_sec)  # 대기 로그.
                 time.sleep(args.interval_sec)  # 설정된 시간만큼 대기.
 
 

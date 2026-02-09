@@ -87,7 +87,7 @@ class NoticeRepository:
                 writer.writeheader()
             for row in rows:
                 writer.writerow({key: row.get(key) for key in fieldnames})
-        self._logger.info("csv_saved path=%s rows=%s", path, len(rows))
+        self._logger.info("CSV 저장 완료 경로=%s 행=%s", path, len(rows))
 
     def _load_seen(self, path: Path, keys: tuple[str, ...]) -> set[tuple[str, ...]]:
         if not path.exists():
@@ -118,5 +118,5 @@ class NoticeRepository:
             seen.add(key)
             unique_rows.append(row)
         if skipped:
-            self._logger.info("dedupe_skipped keys=%s skipped=%s", keys, skipped)
+            self._logger.info("중복 건너뜀 키=%s 건수=%s", keys, skipped)
         return unique_rows

@@ -21,7 +21,7 @@ class BrowserController:
         self._browser = self._playwright.chromium.launch()
         self._context = self._browser.new_context(user_agent=self._config.user_agent)
         self._context.set_default_timeout(self._config.timeout_ms)
-        self._logger.info("browser_context_ready")
+        self._logger.info("브라우저 컨텍스트 준비됨")
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -31,7 +31,7 @@ class BrowserController:
             self._browser.close()
         if self._playwright is not None:
             self._playwright.stop()
-        self._logger.info("browser_context_closed")
+        self._logger.info("브라우저 컨텍스트 종료됨")
         return None
 
     def new_page(self) -> Any:

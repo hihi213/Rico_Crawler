@@ -4,17 +4,17 @@
 과제 B 요구사항(안정성, 재현성, 제품 수준)을 충족하도록 재시도, 체크포인트, 중복 방지, 정규화 로직을 포함했습니다.
 
 ## 과제 맥락
-- 과제 유형: ICT Internship 사전 과제 B (동적 크롤링)
+- 과제 유형: ICT 인턴십 사전 과제 B (동적 크롤링)
 - 목표: 동적 렌더링 페이지에서 목록/상세 핵심 필드 수집 및 표준화 저장
-- 우대 사항: 재실행, interval/cron 모드, 견고한 오류 처리
+- 우대 사항: 재실행, 주기 실행(크론), 견고한 오류 처리
 
 ## 핵심 기능
 1. 목록 → 상세 수집 파이프라인
-2. 표준 스키마(Pydantic) 기반 CSV 저장
+2. 표준 스키마(파이단틱) 기반 CSV 저장
 3. 날짜/금액/플래그/텍스트 정규화
 4. 재시도(tenacity) + 실패 스킵 + 구조화 로그
 5. 체크포인트 기반 재실행
-6. interval 실행 모드
+6. 주기 실행 모드
 7. 필터 옵션(공고종류/공고상태/진행상태)
 
 ## 폴더 구조
@@ -30,58 +30,40 @@ docs/                # 결정 기록/트러블슈팅/스키마
 ```
 
 ## 재현 절차
-재현 절차 요약: venv 생성 → 설치 → 실행 → 결과 확인
-1. 권장 Python 버전: `3.11.14`
+공통 3줄
+```
+python install
+python run
+결과 확인: data/*.csv
+```
+권장 Python 버전: `3.11.14`
 
-macOS (Apple Silicon/Intel 공통)
-1. venv 생성
-```
-python3 -m venv venv
-```
-2. 의존성 설치
-```
-./venv/bin/pip install -r requirements.txt
-```
-3. Playwright 설치
-```
-./venv/bin/python -m playwright install
-```
-4. 시스템 권한 팝업이 뜨면 허용
-간편 실행 스크립트: `./setup`
+자동화 명령 요약
+| 목적 | 명령 | 설명 |
+| --- | --- | --- |
+| 설치 | `python install` | venv 생성 + 의존성 + Playwright 설치 |
+| 기본 실행 | `python run` | 2페이지 기본 수집 |
+| 페이지 수 지정 | `python run page <N>` | N페이지 수집 |
+| 필터 프리셋 | `python run filter` | 빠른 검증용 필터 조합 |
+| 주기 실행 | `python run interval <SEC> [N]` | `<SEC>`초마다 반복, 선택적 페이지 수 |
+| 체크포인트 초기화 | `python run reset` | 체크포인트 초기화 후 실행 |
+| 설정 변경 | `python set <KEY> <VALUE>` | `config.yaml` 값 변경 |
+| 설정 키 확인 | `python set keys` | 변경 가능한 키 목록 출력 |
 
-Windows
-1. venv 생성
+수동 설치가 필요할 때 (운영체제 공통)
 ```
 python -m venv venv
-```
-2. 의존성 설치
-```
-venv\Scripts\pip install -r requirements.txt
-```
-3. Playwright 설치
-```
-venv\Scripts\python -m playwright install
-```
-4. PowerShell 실행 정책 문제 시
-```
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-간편 실행 스크립트: `setup.cmd` 또는 `setup.ps1`
-
-Linux
-1. venv 생성
-```
-python3 -m venv venv
-```
-2. 의존성 설치
-```
 ./venv/bin/pip install -r requirements.txt
+./venv/bin/python -m playwright install
 ```
-3. Playwright 설치
+리눅스에서 브라우저 의존성 미설치 시
 ```
 ./venv/bin/python -m playwright install --with-deps
 ```
-간편 실행 스크립트: `./setup`
+윈도우에서 PowerShell 실행 정책 문제 시
+```
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
 의존성 재현성 정책
 - 모든 패키지 버전은 `requirements.txt`에서 고정 관리합니다.
@@ -90,62 +72,38 @@ python3 -m venv venv
 ## 실행
 간편 실행 (권장)
 ```
-./run
+python run
 ```
 
 페이지 수 지정
 ```
-./run page 5
+python run page 5
 ```
 
 필터 옵션 실행 (조건을 좁혀 빠르게 검증)
 ```
-./run filter
+python run filter
 ```
 
-interval 모드 (주기 실행)
+주기 실행 모드
 ```
-./run interval 3600 2
+python run interval 3600 2
 ```
-
-기본 실행 (직접 옵션 지정)
-```
-./venv/bin/python main.py --max-pages 2
-```
-
-필터 옵션 실행 (조건을 좁혀 빠르게 검증)
-```
-./venv/bin/python main.py --max-pages 2 \
-  --filter-pbanc-knd-cd 공440002 \
-  --filter-pbanc-stts-cd 공400001 \
-  --filter-bid-pgst-cd 입160003
-```
-
-interval 모드 (주기 실행)
-```
-./venv/bin/python main.py --mode interval --interval-sec 3600
-```
-Windows는 `./venv/bin/python` 대신 `venv\\Scripts\\python`을 사용합니다.
 
 실행 파라미터 간단 설명
-- `--max-pages`: 목록 페이지 수 제한(1페이지=100건 기준)
-- `--mode interval`: 설정한 주기마다 반복 실행
-- `--interval-sec`: 반복 실행 간격(초)
-
-실행 스크립트
-- macOS/Linux: `./run`
-- Windows: `run.cmd` 또는 `run.ps1`
+- `page <N>`: 목록 페이지 수를 제한합니다(1페이지=100건 기준)
+- `interval <SEC> [N]`: `<SEC>`초마다 반복 실행하며, `[N]`으로 페이지 수를 선택 지정합니다
 
 ## 설정(config.yaml)
 주요 설정은 `config.yaml`에 있습니다. 실행 전에 바꾸지 않아도 됩니다.
-간단 변경은 `run.py set`으로 가능합니다.
+간단 변경은 `set`으로 가능합니다.
 ```
-./run set crawl.max_pages 10
-./run set crawl.snapshot_enabled true
+python set crawl.max_pages 10
+python set crawl.snapshot_enabled true
 ```
 설정 키 목록 확인
 ```
-./run set-keys
+python set keys
 ```
 - `search_range_days`: 최근 N일 범위 자동 계산
 - `max_pages`: 페이지 제한
@@ -202,16 +160,16 @@ CSV는 `data/` 아래에 생성됩니다.
 - 개선: asyncio + playwright.async_api로 병렬 수집 파이프라인
 
 2. 운영 및 스케줄링
-- 현황: interval 모드에서 time.sleep 기반 루프
+- 현황: 주기 실행 모드에서 time.sleep 기반 루프
 - 개선: cron/systemd timer 등 외부 스케줄러 위임
 
 3. 데이터 관측성 및 신뢰성
 - 현황: WebSquare 특성상 필드 누락/빈 값 발생 가능
-- 개선: 모델 유효성 실패 시 raw snapshot 저장 강화
+- 개선: 모델 유효성 실패 시 원본 스냅샷 저장 강화
 
 4. 보안 및 차단 회피
 - 현황: 고정 User-Agent, 단일 IP
-- 개선: Proxy Rotation, User-Agent 랜덤화
+- 개선: 프록시 로테이션, User-Agent 랜덤화
 
 5. 첨부파일 저장
 - 현황: 메타데이터만 저장
