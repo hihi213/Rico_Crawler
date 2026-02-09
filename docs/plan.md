@@ -99,6 +99,13 @@
 - Core Engineering: 재시도(tenacity), 체크포인트, 중복 방지, 예외 격리
 - Troubleshooting: 실제 케이스 2~3개 요약
 - How to Run: 재현 가능한 명령어(설정/의존성/출력)
+- How to Run에 포함할 필수 요소
+  - requirements.txt 기반 설치 명령(한 줄)
+  - 파이썬 버전 명시(.python-version 또는 README)
+  - 재현 절차(venv 생성 → 설치 → 실행 → 결과 확인)
+  - 출력 경로/파일명 규칙 명시(data/*.csv)
+  - requirements.txt 최신화(버전 고정)
+  - Windows 고려한 명령어/파이썬 버전 안내(README 반영)
 - Future Works: 병렬화, 알림, 모니터링, 성능 개선
 
 ## 결정 보류/추후 반영(상세 메모)
