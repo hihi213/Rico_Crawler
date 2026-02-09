@@ -1,13 +1,13 @@
-from __future__ import annotations  # 타입 힌트 전방 참조 허용.
+from __future__ import annotations
 
-import json  # JSON 직렬화.
-import logging  # 로깅.
-from datetime import datetime, timedelta  # 날짜 처리 모듈.
-from typing import Any, Optional  # 범용 타입과 선택적 타입.
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
-from src.core.config import CrawlConfig  # 크롤링 설정 모델.
+from src.core.config import CrawlConfig
 from src.domain.models import (
     AttachmentItem,
     BidNoticeDetail,
@@ -15,50 +15,50 @@ from src.domain.models import (
     BidOpeningResult,
     BidOpeningSummary,
     NoceItem,
-)  # 도메인 모델.
-from src.infrastructure.checkpoint import CheckpointStore, CrawlCheckpoint  # 체크포인트 저장소.
-from src.infrastructure.parser import NoticeParser  # 파서 인터페이스.
-from src.infrastructure.repository import NoticeRepository  # 저장소 인터페이스.
-from src.infrastructure.snapshot import SnapshotStore  # 스냅샷 저장소.
+) 
+from src.infrastructure.checkpoint import CheckpointStore, CrawlCheckpoint
+from src.infrastructure.parser import NoticeParser
+from src.infrastructure.repository import NoticeRepository
+from src.infrastructure.snapshot import SnapshotStore
 
 
-class CrawlerService:  # 크롤링 비즈니스 로직 계층.
-    def __init__(  # 의존성 주입.
+class CrawlerService:
+    def __init__(
         self,
-        config: CrawlConfig,  # 크롤링 설정.
-        repo: NoticeRepository,  # 저장소 구현체.
-        parser: NoticeParser,  # 파서 구현체.
-        checkpoint: CheckpointStore,  # 체크포인트 저장소.
+        config: CrawlConfig,
+        repo: NoticeRepository,
+        parser: NoticeParser,
+        checkpoint: CheckpointStore,
     ) -> None:
-        self._config = config  # 설정 보관.
-        self._repo = repo  # 저장소 보관.
-        self._parser = parser  # 파서 보관.
-        self._checkpoint = checkpoint  # 체크포인트 보관.
-        self._logger = logging.getLogger("service")  # 로거 생성.
-        self._snapshot = SnapshotStore(config.snapshot_dir) if config.snapshot_enabled else None  # 스냅샷 저장소.
+        self._config = config
+        self._repo = repo
+        self._parser = parser
+        self._checkpoint = checkpoint
+        self._logger = logging.getLogger("service")
+        self._snapshot = SnapshotStore(config.snapshot_dir) if config.snapshot_enabled else None
 
-    def run(self, page: Any, max_pages: Optional[int]) -> None:  # 실행 진입점
-        target_pages = self._config.max_pages  # 기본 페이지 수.
-        if max_pages is not None:  # CLI 제한이 있으면.
-            target_pages = min(target_pages, max_pages)  # 매걔변수와 시스템 설정중 더 작은 값 사용.
-        start_page = 1  # 시작 페이지.
-        saved = self._checkpoint.load()  # 체크포인트 로드.
-        if saved is not None:  # 저장된 체크포인트가 있으면.
-            start_page = max(1, saved.current_page)  # 저장된 페이지부터 시작.
-        self._logger.info("crawl_start pages=%s", target_pages)  # 시작 로그.
-        if self._config.list_api_url:  # 목록 API를 쓰는 경우.
-            for page_index in range(start_page, target_pages + 1):  # 페이지 반복.
-                raw_rows = self._fetch_list_via_api(page, page_index)  # API 목록 호출.
-                if self._config.snapshot_only_list:  # 목록만 저장하는 모드면.
-                    self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
-                    continue  # 상세 수집 생략.
-                items, list_skipped = self._build_list_items(raw_rows)  # 목록 모델 생성.
-                items = self._apply_list_filters(items)  # 후처리 필터 적용.
-                detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
-                opening_summaries: list[BidOpeningSummary] = []  # 개찰 요약 리스트.
-                opening_results: list[BidOpeningResult] = []  # 개찰 결과 리스트.
-                attachments: list[AttachmentItem] = []  # 첨부 리스트.
-                noce_items: list[NoceItem] = []  # 공지 리스트.
+    def run(self, page: Any, max_pages: Optional[int]) -> None:
+        target_pages = self._config.max_pages
+        if max_pages is not None:
+            target_pages = min(target_pages, max_pages)
+        start_page = 1
+        saved = self._checkpoint.load()
+        if saved is not None:
+            start_page = max(1, saved.current_page)
+        self._logger.info("crawl_start pages=%s", target_pages)
+        if self._config.list_api_url:
+            for page_index in range(start_page, target_pages + 1):
+                raw_rows = self._fetch_list_via_api(page, page_index)
+                if self._config.snapshot_only_list:
+                    self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))
+                    continue
+                items, list_skipped = self._build_list_items(raw_rows)
+                items = self._apply_list_filters(items)
+                detail_items: list[BidNoticeDetail] = []
+                opening_summaries: list[BidOpeningSummary] = []
+                opening_results: list[BidOpeningResult] = []
+                attachments: list[AttachmentItem] = []
+                noce_items: list[NoceItem] = []
                 noce_skipped = 0
                 attachment_skipped = 0
                 opening_summary_skipped = 0

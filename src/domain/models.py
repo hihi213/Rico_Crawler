@@ -1,79 +1,77 @@
-from __future__ import annotations  # 타입 힌트에서 전방 참조를 허용한다.
+from __future__ import annotations
 
-# docs/schema.md 기준으로 파싱/저장을 일관되게 유지하기 위한 도메인 모델.
+from datetime import datetime
+import html
+from typing import Optional
 
-from datetime import datetime  # 날짜/시간 정규화에 사용.
-from typing import Optional  # 선택적 필드 타입 표현.
-import html  # HTML 엔티티 디코딩.
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, Field  # 모든 도메인 모델의 기반 클래스와 제약 선언.
+try:
+    from pydantic import field_validator
 
-try:  # Pydantic v2의 validator를 우선 시도한다.
-    from pydantic import field_validator  # v2 전용 validator 데코레이터.
-
-    _USE_PYDANTIC_V2 = True  # v2 사용 여부 플래그.
+    _USE_PYDANTIC_V2 = True
 except ImportError:  # pragma: no cover - pydantic v1 fallback
-    from pydantic import validator  # v1 전용 validator 데코레이터.
+    from pydantic import validator
 
-    _USE_PYDANTIC_V2 = False  # v1 사용 여부 플래그.
-
-
-def _strip_or_none(value: Optional[str]) -> Optional[str]:  # 공백 제거 후 빈 값 처리.
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
-    stripped = value.strip()  # 양쪽 공백 제거.
-    return stripped if stripped else None  # 빈 문자열이면 None 반환.
+    _USE_PYDANTIC_V2 = False
 
 
-def _normalize_doc_no(value: Optional[str]) -> Optional[str]:  # 문서번호 공백 제거.
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
+def _strip_or_none(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped if stripped else None
+
+
+def _normalize_doc_no(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
     unescaped = _unescape_html(value) or ""
-    return "".join(unescaped.split()) or None  # 모든 공백 제거 후 빈 값은 None.
+    return "".join(unescaped.split()) or None
 
 
-def _unescape_html(value: Optional[str]) -> Optional[str]:  # HTML 엔티티 디코딩.
+def _unescape_html(value: Optional[str]) -> Optional[str]:
     stripped = _strip_or_none(value)
     if stripped is None:
         return None
     return html.unescape(stripped)
 
 
-def _normalize_biz_reg_no(value: Optional[str]) -> Optional[str]:  # 사업자등록번호 하이픈 제거.
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
-    return value.replace("-", "").strip() or None  # 하이픈 제거 후 빈 값이면 None.
+def _normalize_biz_reg_no(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    return value.replace("-", "").strip() or None
 
 
-def _parse_bool_yn(value: Optional[str]) -> Optional[bool]:  # Y/N 플래그를 bool로 변환. 중요한 기준이니 대문자로 기준
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
-    if isinstance(value, bool):  # 이미 bool이면 그대로 사용.
-        return value  # 그대로 반환.
-    normalized = str(value).strip().upper()  # 공백 제거 후 대문자화.
-    if normalized == "Y":  # Y는 True.
-        return True  # True 반환.
-    if normalized == "N":  # N은 False.
-        return False  # False 반환.
-    if normalized in ("TRUE", "T", "1"):  # True 계열 문자열.
+def _parse_bool_yn(value: Optional[str]) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().upper()
+    if normalized == "Y":
         return True
-    if normalized in ("FALSE", "F", "0"):  # False 계열 문자열.
+    if normalized == "N":
         return False
-    return None  # 그 외 값은 None 처리.
+    if normalized in ("TRUE", "T", "1"):
+        return True
+    if normalized in ("FALSE", "F", "0"):
+        return False
+    return None
 
 
-def _parse_int(value: Optional[str]) -> Optional[int]:  # 금액/숫자 필드 정규화.
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
-    if isinstance(value, int):  # 이미 int면 그대로 사용.
-        return value  # 그대로 반환.
-    raw = str(value).replace(",", "").strip()  # 콤마 제거 후 공백 제거.
-    if raw == "":  # 빈 문자열이면 None 처리.
-        return None  # None 반환.
-    return int(raw)  # 숫자로 변환.
+def _parse_int(value: Optional[str]) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    raw = str(value).replace(",", "").strip()
+    if raw == "":
+        return None
+    return int(raw)
 
 
-def _parse_float(value: Optional[str]) -> Optional[float]:  # 부동소수점 정규화.
+def _parse_float(value: Optional[str]) -> Optional[float]:
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -84,40 +82,40 @@ def _parse_float(value: Optional[str]) -> Optional[float]:  # 부동소수점 �
     return float(raw)
 
 
-def _parse_datetime(value: Optional[str]) -> Optional[datetime]:  # 날짜/시간 문자열 파싱.
-    if value is None:  # 값이 없으면 None 유지.
-        return None  # None 반환.
-    if isinstance(value, datetime):  # 이미 datetime이면 그대로 사용.
-        return value  # 그대로 반환.
-    raw = str(value).strip()  # 문자열로 변환 후 공백 제거.
-    if raw == "":  # 빈 문자열이면 None 처리.
-        return None  # None 반환.
-    formats = [  # 허용하는 날짜/시간 포맷 목록.
-        "%Y/%m/%d %H:%M:%S",  # 초 포함.
-        "%Y/%m/%d %H:%M",  # 분까지만.
-        "%Y-%m-%d %H:%M:%S",  # 하이픈 구분, 초 포함.
-        "%Y-%m-%d %H:%M",  # 하이픈 구분, 분까지만.
-        "%Y%m%d%H%M%S",  # 구분자 없는 일시(초 포함).
-        "%Y%m%d%H%M",  # 구분자 없는 일시(분까지만).
-        "%Y/%m/%d",  # 날짜만(슬래시).
-        "%Y-%m-%d",  # 날짜만(하이픈).
-        "%Y%m%d",  # 날짜만(숫자 8자리).
-    ]  # 포맷 리스트 종료.
-    for fmt in formats:  # 각 포맷을 순회하며 파싱 시도.
-        try:  # 파싱 실패를 대비한 try 블록.
-            return datetime.strptime(raw, fmt)  # 파싱 성공 시 반환.
-        except ValueError:  # 해당 포맷 불일치.
-            continue  # 다음 포맷으로 진행.
-    raise ValueError(f"Unsupported datetime format for value: {value}")  # 모두 실패 시 에러.
+def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    raw = str(value).strip()
+    if raw == "":
+        return None
+    formats = [
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y%m%d%H%M%S",
+        "%Y%m%d%H%M",
+        "%Y/%m/%d",
+        "%Y-%m-%d",
+        "%Y%m%d",
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Unsupported datetime format for value: {value}")
 
 
-def _before_validator(*fields: str):  # v1/v2 공통 validator 래퍼.
-    if _USE_PYDANTIC_V2:  # v2 환경이면.
-        return field_validator(*fields, mode="before")  # v2 before validator 반환.
-    return validator(*fields, pre=True)  # v1 before validator 반환.
+def _before_validator(*fields: str):
+    if _USE_PYDANTIC_V2:
+        return field_validator(*fields, mode="before")
+    return validator(*fields, pre=True)
 
 
-class BidNoticeKey(BaseModel):  # 공통 식별자 모델.
+class BidNoticeKey(BaseModel):
     # 목록/상세/개찰 공통 식별자. 조인 및 재시작(체크포인트) 기준으로 사용.
     bid_pbanc_no: str  # 입찰공고번호.
     bid_pbanc_ord: str  # 차수.

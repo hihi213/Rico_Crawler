@@ -11,29 +11,13 @@ crawl:
   retry_count: 3
   retry_backoff_sec: 1.5
   user_agent: "RiCO-NuriCrawler/1.0"
-  # search_range_days: 동적 날짜 계산 옵션(없으면 고정 날짜 사용).
-  # - 예: 7이면 오늘 기준 최근 7일치로 pbancPstgStDt/pbancPstgEdDt 계산.
-  # - 지정하지 않으면 아래 고정 날짜를 그대로 사용한다.
   search_range_days: 1825
-  # snapshot_enabled: 원본 JSON 스냅샷 저장 옵션(기본 OFF).
-  # - 미확정 항목이 포함된 응답만 선택 저장한다.
   snapshot_enabled: false
-  # snapshot_dir: 스냅샷 저장 경로.
   snapshot_dir: "data/raw"
-  # snapshot_mode: 스냅샷 저장 모드.
-  # - unexpected: 예상 외(새) 필드 감지 시 저장
-  # - all: 모든 응답 저장
   snapshot_mode: "all"
-  # snapshot_only_list: 목록 원본만 저장하고 상세 수집은 생략.
   snapshot_only_list: false
-  # list_filter_pbanc_knd_cd: 공고종류 필터(후처리).
-  # - 예: 공440002(실공고) / 공440001(모의공고)
   list_filter_pbanc_knd_cd:
-  # list_filter_pbanc_stts_cd: 공고구분 필터(후처리).
-  # - 예: 공5400001(등록공고), 공5400002(변경공고)
   list_filter_pbanc_stts_cd:
-  # list_filter_bid_pbanc_pgst_cd: 진행상태 필터(후처리).
-  # - 예: 입160003(입찰개시)
   list_filter_bid_pbanc_pgst_cd:
   list_api_headers:
     Accept: "application/json"
