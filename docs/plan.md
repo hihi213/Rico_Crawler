@@ -89,6 +89,42 @@
 - 최종 점검
     - Ctrl+C 후 resume 확인
     - 다른 디렉터리에서 새 venv로 README만 보고 돌아가는지 테스트
+
+## 평가 계획 (com.md 기준)
+
+### 1. 정확성(필드 추출/정규화)
+- 목록/상세/공지/첨부/개찰 CSV 생성 여부 확인
+- 날짜/금액/플래그/텍스트 정규화 샘플 검증
+- `docs/schema.md` 대비 필수 필드 누락 점검
+
+### 2. 견고함(예외/노이즈 대응)
+- 스킵/재시도 로그 확인(`list_row_skip`, `detail_api_skip` 등)
+- 중복 제거 로그(`dedupe_skipped`) 확인
+- 페이지 단위 스킵 집계 로그 확인
+
+### 3. 재현성(로컬 재현)
+- README만 보고 설치/실행 가능 여부 확인
+- 동일 조건에서 CSV 재생성 확인
+- `--reset-checkpoint`로 초기 수집 가능 여부 확인
+
+### 4. 제품 수준 우대(운영성)
+- 체크포인트 기반 재실행 확인
+- interval 모드 동작 확인
+- 스냅샷 옵션 ON/OFF 정상 동작 확인
+
+### 5. 실동작 검증
+- 실시간 공고 기준 최소 50건 이상 수집
+- 실행 로그 + CSV row count 증빙 확보
+
+### 6. 문서/테스트
+- `docs/decision_log.md`, `docs/troubleshooting.md` 최신 기록 확인
+- pytest 최소 테스트 수행 기록 확보
+
+### 7. Windows 가상환경 검증(재현성)
+- PowerShell에서 venv 생성/활성화
+- requirements 설치 + playwright install
+- `python main.py --max-pages 1 --reset-checkpoint` 실행
+- `data/*.csv` 생성 확인
         
 
 

@@ -30,3 +30,7 @@ class CheckpointStore:  # 체크포인트 저장/로드.
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")  # 임시 파일.
         tmp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")  # 임시 저장.
         tmp_path.replace(self._path)  # 원자적 교체.
+
+    def clear(self) -> None:  # 체크포인트 초기화.
+        if self._path.exists():
+            self._path.unlink()

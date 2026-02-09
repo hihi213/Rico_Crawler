@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:  # CLI 인자 파싱 함수.
     parser.add_argument("--filter-pbanc-knd-cd", default=None)  # 공고종류 필터.
     parser.add_argument("--filter-pbanc-stts-cd", default=None)  # 공고상태 필터.
     parser.add_argument("--filter-bid-pgst-cd", default=None)  # 진행상태 필터.
+    parser.add_argument("--reset-checkpoint", action="store_true")  # 체크포인트 초기화.
     return parser.parse_args()  # 파싱 결과 반환.
 
 
@@ -52,10 +53,16 @@ def main() -> None:  # 메인 진입점.
     with BrowserController(config.crawl) as browser:  # 브라우저 컨텍스트 시작.
         page = browser.new_page()  # 새 페이지 생성.
         if args.mode == "once":  # 단발 실행.
+            if args.reset_checkpoint:
+                checkpoint.clear()
+                logger.info("checkpoint_reset")
             service.run(page, args.max_pages)  # 크롤링 실행.
         else:  # interval 실행.
             while True:  # 반복 실행.
                 logger.info("interval crawl start")  # 시작 로그.
+                if args.reset_checkpoint:
+                    checkpoint.clear()
+                    logger.info("checkpoint_reset")
                 service.run(page, args.max_pages)  # 크롤링 실행.
                 logger.info("interval crawl sleep=%s sec", args.interval_sec)  # 대기 로그.
                 time.sleep(args.interval_sec)  # 설정된 시간만큼 대기.

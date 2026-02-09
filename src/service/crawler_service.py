@@ -53,19 +53,29 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 if self._config.snapshot_only_list:  # 목록만 저장하는 모드면.
                     self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
                     continue  # 상세 수집 생략.
-                items = self._build_list_items(raw_rows)  # 목록 모델 생성.
+                items, list_skipped = self._build_list_items(raw_rows)  # 목록 모델 생성.
                 items = self._apply_list_filters(items)  # 후처리 필터 적용.
                 detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
                 opening_summaries: list[BidOpeningSummary] = []  # 개찰 요약 리스트.
                 opening_results: list[BidOpeningResult] = []  # 개찰 결과 리스트.
                 attachments: list[AttachmentItem] = []  # 첨부 리스트.
                 noce_items: list[NoceItem] = []  # 공지 리스트.
+                noce_skipped = 0
+                attachment_skipped = 0
+                opening_summary_skipped = 0
+                opening_row_skipped = 0
                 for item in items:  # 상세/부가 데이터 수집.
                     detail_raw = self._fetch_detail_via_api(page, item)  # 상세 API 호출.
                     detail_items.append(self._build_detail_from_list(item, detail_raw))  # 상세 모델 생성.
-                    noce_items.extend(self._build_noce_items(page, item))  # 공지 리스트.
-                    attachments.extend(self._build_attachment_items(page, detail_raw))  # 첨부 리스트.
-                    opening_summary, opening_rows = self._build_opening_items(page, item)  # 개찰 결과.
+                    noce_batch, noce_skip = self._build_noce_items(page, item)  # 공지 리스트.
+                    noce_items.extend(noce_batch)
+                    noce_skipped += noce_skip
+                    attachment_batch, attachment_skip = self._build_attachment_items(page, detail_raw)  # 첨부 리스트.
+                    attachments.extend(attachment_batch)
+                    attachment_skipped += attachment_skip
+                    opening_summary, opening_rows, sum_skip, row_skip = self._build_opening_items(page, item)
+                    opening_summary_skipped += sum_skip
+                    opening_row_skipped += row_skip
                     if opening_summary is not None:
                         opening_summaries.append(opening_summary)
                     opening_results.extend(opening_rows)
@@ -91,6 +101,15 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                     len(opening_summaries),
                     len(opening_results),
                 )
+                self._logger.info(
+                    "page_skipped page=%s list=%s noce=%s attach=%s opening_summary=%s opening_result=%s",
+                    page_index,
+                    list_skipped,
+                    noce_skipped,
+                    attachment_skipped,
+                    opening_summary_skipped,
+                    opening_row_skipped,
+                )
                 self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
             self._logger.info("crawl_done")  # 종료 로그.
             return  # API 경로는 여기서 종료.
@@ -102,20 +121,29 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         page.wait_for_selector(self._config.selectors.list_row)  # 목록 로드 대기.
         for page_index in range(start_page, target_pages + 1):  # 페이지 반복.
             raw_rows = self._parser.parse_list(page)  # 목록 파싱.
-            items = self._build_list_items(raw_rows)  # 목록 모델 생성.
+            items, list_skipped = self._build_list_items(raw_rows)  # 목록 모델 생성.
             items = self._apply_list_filters(items)  # 후처리 필터 적용.
             detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
+            detail_skipped = 0
             for row_index, item in enumerate(items):  # 각 행 변환.
                 detail_data: dict[str, Any] = {}  # 상세 원본 맵.
                 if self._config.selectors.detail_popup and self._config.selectors.detail_close:  # 상세 설정 확인.
                     detail_data = self._open_detail_and_fetch(page, row_index)  # 상세 응답 확보.
                     self._close_detail(page)  # 상세 팝업 닫기.
-                detail_item = self._build_detail_from_list(item, detail_data)  # 상세 생성.
+                try:
+                    detail_item = self._build_detail_from_list(item, detail_data)  # 상세 생성.
+                except Exception as exc:
+                    self._logger.warning("detail_row_skip err=%s key=%s", exc, item.bid_pbanc_no)
+                    detail_skipped += 1
+                    continue
                 detail_items.append(detail_item)  # 상세 저장 목록에 추가.
             if items:  # 저장할 항목이 있으면.
                 self._repo.save_list_items(items)  # 목록 저장.
             if detail_items:  # 상세 항목이 있으면.
                 self._repo.save_detail_items(detail_items)  # 상세 저장.
+            self._logger.info(
+                "page_skipped page=%s list=%s detail=%s", page_index, list_skipped, detail_skipped
+            )
             if page_index >= target_pages:  # 마지막 페이지면 종료.
                 break  # 루프 종료.
             if not self._config.selectors.pagination_next:  # 다음 버튼 없으면.
@@ -209,8 +237,11 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         if parsed[start_key] > parsed[end_key]:  # 시작일이 종료일보다 늦으면.
             raise ValueError(f"{start_key} must be <= {end_key}")  # 범위 오류.
 
-    def _build_list_items(self, raw_rows: list[dict[str, Any]]) -> list[BidNoticeListItem]:  # 목록 모델 생성.
+    def _build_list_items(  # 목록 모델 생성.
+        self, raw_rows: list[dict[str, Any]]
+    ) -> tuple[list[BidNoticeListItem], int]:
         items: list[BidNoticeListItem] = []  # 변환된 모델 리스트.
+        skipped = 0
         for raw in raw_rows:  # 각 행 변환.
             mapped = self._map_list_row(raw)  # 필드 매핑.
             try:  # 검증 실패를 대비.
@@ -218,8 +249,9 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 items.append(list_item)  # 목록 추가.
             except Exception as exc:  # 검증 실패.
                 self._logger.warning("list_row_skip err=%s raw=%s", exc, raw)  # 스킵 로그.
+                skipped += 1
                 continue  # 다음 행.
-        return items
+        return items, skipped
 
     def _apply_list_filters(self, items: list[BidNoticeListItem]) -> list[BidNoticeListItem]:  # 목록 필터.
         filtered = items  # 기본은 전체.
@@ -279,9 +311,9 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             self._logger.warning("detail_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
             return {}
 
-    def _build_noce_items(self, page: Any, item: BidNoticeListItem) -> list[NoceItem]:  # 공지 항목 생성.
+    def _build_noce_items(self, page: Any, item: BidNoticeListItem) -> tuple[list[NoceItem], int]:
         if not self._config.noce_api_url:
-            return []
+            return [], 0
         payload = dict(self._config.noce_api_payload)
         payload.update(
             {
@@ -314,8 +346,9 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             rows = _call()
         except Exception as exc:
             self._logger.warning("noce_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
-            return []
+            return [], 0
         results: list[NoceItem] = []
+        skipped = 0
         for row in rows:
             mapped = {
                 "pst_no": row.get("pstNo"),
@@ -331,14 +364,17 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 results.append(NoceItem(**mapped))
             except Exception as exc:
                 self._logger.warning("noce_row_skip err=%s raw=%s", exc, row)
-        return results
+                skipped += 1
+        return results, skipped
 
-    def _build_attachment_items(self, page: Any, detail_raw: dict[str, Any]) -> list[AttachmentItem]:  # 첨부 항목 생성.
+    def _build_attachment_items(
+        self, page: Any, detail_raw: dict[str, Any]
+    ) -> tuple[list[AttachmentItem], int]:
         if not self._config.attachment_api_url:
-            return []
+            return [], 0
         unty_atch_file_no = detail_raw.get("untyAtchFileNo")
         if not unty_atch_file_no:
-            return []
+            return [], 0
         payload = dict(self._config.attachment_api_payload)
         payload["untyAtchFileNo"] = unty_atch_file_no
 
@@ -365,8 +401,9 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             rows = _call()
         except Exception as exc:
             self._logger.warning("attachment_api_skip err=%s key=%s", exc, unty_atch_file_no)
-            return []
+            return [], 0
         results: list[AttachmentItem] = []
+        skipped = 0
         for row in rows:
             mapped = {
                 "unty_atch_file_no": row.get("untyAtchFileNo"),
@@ -394,15 +431,16 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 results.append(AttachmentItem(**mapped))
             except Exception as exc:
                 self._logger.warning("attachment_row_skip err=%s raw=%s", exc, row)
-        return results
+                skipped += 1
+        return results, skipped
 
     def _build_opening_items(
         self, page: Any, item: BidNoticeListItem
-    ) -> tuple[Optional[BidOpeningSummary], list[BidOpeningResult]]:  # 개찰 항목 생성.
+    ) -> tuple[Optional[BidOpeningSummary], list[BidOpeningResult], int, int]:  # 개찰 항목 생성.
         if not self._config.opening_api_url:
-            return None, []
+            return None, [], 0, 0
         if not item.bid_clsf_no or not item.bid_prgrs_ord:
-            return None, []
+            return None, [], 0, 0
         payload = dict(self._config.opening_api_payload)
         payload.update(
             {
@@ -435,22 +473,26 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             summary_raw, rows_raw = _call()
         except Exception as exc:
             self._logger.warning("opening_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
-            return None, []
+            return None, [], 0, 0
         summary = None
+        summary_skipped = 0
         if summary_raw:
             mapped = self._map_opening_summary(summary_raw)
             try:
                 summary = BidOpeningSummary(**mapped)
             except Exception as exc:
                 self._logger.warning("opening_summary_skip err=%s raw=%s", exc, summary_raw)
+                summary_skipped += 1
         results: list[BidOpeningResult] = []
+        row_skipped = 0
         for row in rows_raw:
             mapped = self._map_opening_result(row)
             try:
                 results.append(BidOpeningResult(**mapped))
             except Exception as exc:
                 self._logger.warning("opening_row_skip err=%s raw=%s", exc, row)
-        return summary, results
+                row_skipped += 1
+        return summary, results, summary_skipped, row_skipped
 
     def _map_opening_summary(self, raw: dict[str, Any]) -> dict[str, Any]:  # 개찰 요약 매핑.
         mapping = {

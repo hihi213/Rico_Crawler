@@ -113,10 +113,14 @@ class NoticeRepository:  # 저장소 인터페이스.
         if not rows:  # 저장할 내용이 없으면.
             return []  # 빈 리스트.
         unique_rows: list[dict[str, Any]] = []  # 결과 리스트.
+        skipped = 0
         for row in rows:  # 각 행 확인.
             key = tuple((str(row.get(k) or "")).strip() for k in keys)  # 키 조합.
             if key in seen:  # 중복이면.
+                skipped += 1
                 continue  # 스킵.
             seen.add(key)  # 신규 키 등록.
             unique_rows.append(row)  # 결과 추가.
+        if skipped:
+            self._logger.info("dedupe_skipped keys=%s skipped=%s", keys, skipped)
         return unique_rows  # 결과 반환.
