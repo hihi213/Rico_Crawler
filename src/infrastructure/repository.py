@@ -88,6 +88,26 @@ class NoticeRepository:
             for row in rows:
                 writer.writerow({key: row.get(key) for key in fieldnames})
         self._logger.info("CSV 저장 완료 경로=%s 행=%s", path, len(rows))
+        self._write_view_csv(path, rows, fieldnames)
+
+    def _write_view_csv(
+        self,
+        source_path: Path,
+        rows: list[dict[str, Any]],
+        fieldnames: list[str],
+    ) -> None:
+        view_dir = source_path.parent / "view"
+        view_dir.mkdir(parents=True, exist_ok=True)
+        view_path = view_dir / source_path.name
+        view_fieldnames = [name for name in fieldnames if not name.endswith("_cd")]
+        file_exists = view_path.exists()
+        with view_path.open("a", newline="", encoding="utf-8") as fp:
+            writer = csv.DictWriter(fp, fieldnames=view_fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            for row in rows:
+                writer.writerow({key: row.get(key) for key in view_fieldnames})
+        self._logger.info("VIEW CSV 저장 완료 경로=%s 행=%s", view_path, len(rows))
 
     def _load_seen(self, path: Path, keys: tuple[str, ...]) -> set[tuple[str, ...]]:
         if not path.exists():
