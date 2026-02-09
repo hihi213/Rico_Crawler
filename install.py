@@ -21,13 +21,13 @@ def detect_os() -> str:
 
 def venv_python_path(venv_dir: Path, os_name: str) -> Path:
     if os_name == "windows":
-        return venv_dir / "Scripts" / "python"
+        return venv_dir / "Scripts" / "python.exe"
     return venv_dir / "bin" / "python"
 
 
 def venv_pip_path(venv_dir: Path, os_name: str) -> Path:
     if os_name == "windows":
-        return venv_dir / "Scripts" / "pip"
+        return venv_dir / "Scripts" / "pip.exe"
     return venv_dir / "bin" / "pip"
 
 
