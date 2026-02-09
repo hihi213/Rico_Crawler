@@ -37,6 +37,11 @@ docs/                # 결정 기록/트러블슈팅/스키마
 권장 Python 버전: `3.11.14`
 
 ## 1. 설치
+빠른 시작 (OS 자동 감지)
+```
+python install
+```
+
 수동 설치 (운영체제 공통)
 ```
 python -m venv venv
@@ -93,6 +98,7 @@ python main.py -f knd=실공고,stts=등록공고,pgst=입찰개시
 
 ## 3. 결과 확인
 CSV 저장 위치: `data/`  
+샘플 결과: `sample/` (각 CSV 헤더 + 상위 5행)  
 실행 후 아래 파일이 생성되면 정상 동작입니다.
 - `data/list.csv`: 입찰공고 목록
 - `data/detail.csv`: 입찰공고 상세
