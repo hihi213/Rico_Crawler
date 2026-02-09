@@ -50,7 +50,11 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         if self._config.list_api_url:  # 목록 API를 쓰는 경우.
             for page_index in range(start_page, target_pages + 1):  # 페이지 반복.
                 raw_rows = self._fetch_list_via_api(page, page_index)  # API 목록 호출.
+                if self._config.snapshot_only_list:  # 목록만 저장하는 모드면.
+                    self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
+                    continue  # 상세 수집 생략.
                 items = self._build_list_items(raw_rows)  # 목록 모델 생성.
+                items = self._apply_list_filters(items)  # 후처리 필터 적용.
                 detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
                 opening_summaries: list[BidOpeningSummary] = []  # 개찰 요약 리스트.
                 opening_results: list[BidOpeningResult] = []  # 개찰 결과 리스트.
@@ -99,6 +103,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         for page_index in range(start_page, target_pages + 1):  # 페이지 반복.
             raw_rows = self._parser.parse_list(page)  # 목록 파싱.
             items = self._build_list_items(raw_rows)  # 목록 모델 생성.
+            items = self._apply_list_filters(items)  # 후처리 필터 적용.
             detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
             for row_index, item in enumerate(items):  # 각 행 변환.
                 detail_data: dict[str, Any] = {}  # 상세 원본 맵.
@@ -134,13 +139,16 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             reraise=True,
         )
         def _call() -> list[dict[str, Any]]:
+            self._logger.info("list_api_call page=%s", current_page)  # 호출 시작 로그.
             payload = self._build_list_payload(current_page)  # 유효성 검증 포함 페이로드 구성.
             resp = page.request.post(  # API 호출.
                 self._config.list_api_url,
                 data=json.dumps({"dlParamM": payload}),
                 headers=self._config.list_api_headers,
             )
+            self._logger.info("list_api_response page=%s status=%s", current_page, resp.status)  # 응답 상태 로그.
             body = resp.json()  # JSON 파싱.
+            self._maybe_snapshot_list(current_page, body)  # 원본 스냅샷 저장.
             if body.get("ErrorCode") != 0:  # 오류 처리.
                 raise RuntimeError(f"list_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
             result = body.get("result", [])  # 결과 리스트.
@@ -151,7 +159,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         try:
             return _call()
         except Exception as exc:
-            self._logger.warning("list_api_skip err=%s page=%s", exc, current_page)
+            self._logger.warning("list_api_skip err=%s page=%s", exc, current_page, exc_info=True)
             return []
 
     def _build_list_payload(self, current_page: int) -> dict[str, Any]:  # 목록 페이로드 구성.
@@ -212,6 +220,26 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 self._logger.warning("list_row_skip err=%s raw=%s", exc, raw)  # 스킵 로그.
                 continue  # 다음 행.
         return items
+
+    def _apply_list_filters(self, items: list[BidNoticeListItem]) -> list[BidNoticeListItem]:  # 목록 필터.
+        filtered = items  # 기본은 전체.
+        if self._config.list_filter_pbanc_knd_cd:  # 공고종류 필터가 있으면.
+            filtered = [
+                item for item in filtered if item.pbanc_knd_cd == self._config.list_filter_pbanc_knd_cd
+            ]
+        if self._config.list_filter_pbanc_stts_cd:  # 공고구분 필터가 있으면.
+            filtered = [
+                item for item in filtered if item.pbanc_stts_cd == self._config.list_filter_pbanc_stts_cd
+            ]
+        if self._config.list_filter_bid_pbanc_pgst_cd:  # 진행상태 필터가 있으면.
+            filtered = [
+                item
+                for item in filtered
+                if item.bid_pbanc_pgst_cd == self._config.list_filter_bid_pbanc_pgst_cd
+            ]
+        if len(filtered) != len(items):  # 필터로 줄어들었으면.
+            self._logger.info("list_filtered before=%s after=%s", len(items), len(filtered))
+        return filtered
 
     def _fetch_detail_via_api(self, page: Any, item: BidNoticeListItem) -> dict[str, Any]:  # 상세 API 호출.
         if not self._config.detail_api_url:  # 설정이 없으면.
@@ -605,7 +633,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             return  # 저장 생략.
         key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
         payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
-        self._snapshot.save("detail", key, payload)  # 스냅샷 저장.
+        self._snapshot.save(f"detail_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
         self._logger.info("snapshot_saved type=detail key=%s unexpected=%s", key, unexpected)  # 저장 로그.
 
     def _maybe_snapshot_opening(self, item: BidNoticeListItem, body: dict[str, Any]) -> None:  # 개찰 스냅샷.
@@ -617,7 +645,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             return  # 저장 생략.
         key = f"{item.bid_pbanc_no}_{item.bid_pbanc_ord}"  # 파일 키 구성.
         payload = self._wrap_snapshot_payload(body, unexpected)  # 메타 포함 래핑.
-        self._snapshot.save("opening", key, payload)  # 스냅샷 저장.
+        self._snapshot.save(f"opening_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
         self._logger.info("snapshot_saved type=opening key=%s unexpected=%s", key, unexpected)  # 저장 로그.
 
     def _find_unexpected_keys(self, result: dict[str, Any], expected: set[str]) -> list[str]:  # 예상 외 키 탐지.
@@ -634,6 +662,16 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             },
             "body": body,
         }
+
+    def _maybe_snapshot_list(self, page_index: int, body: dict[str, Any]) -> None:  # 목록 스냅샷.
+        if not self._snapshot:  # 스냅샷 비활성.
+            return  # 종료.
+        if self._config.snapshot_mode != "all":  # 전체 저장 모드가 아니면.
+            return  # 저장 생략.
+        key = f"page_{page_index}"  # 파일 키 구성.
+        payload = self._wrap_snapshot_payload(body, [])  # 메타 포함 래핑.
+        self._snapshot.save(f"list_{datetime.now().strftime('%Y%m%d')}", key, payload)  # 스냅샷 저장.
+        self._logger.info("snapshot_saved type=list key=%s mode=%s", key, self._config.snapshot_mode)
 
     def _build_detail_from_list(  # 상세 기본값 생성.
         self,
