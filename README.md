@@ -47,6 +47,7 @@ python3 -m venv venv
 ./venv/bin/python -m playwright install
 ```
 4. 시스템 권한 팝업이 뜨면 허용
+간편 실행 스크립트: `./setup`
 
 Windows
 1. venv 생성
@@ -65,6 +66,7 @@ venv\Scripts\python -m playwright install
 ```
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
+간편 실행 스크립트: `setup.cmd` 또는 `setup.ps1`
 
 Linux
 1. venv 생성
@@ -79,18 +81,39 @@ python3 -m venv venv
 ```
 ./venv/bin/python -m playwright install --with-deps
 ```
+간편 실행 스크립트: `./setup`
 
 의존성 재현성 정책
 - 모든 패키지 버전은 `requirements.txt`에서 고정 관리합니다.
 - 버전 변경 시 `requirements.txt`와 README의 실행 절차를 함께 업데이트합니다.
 
 ## 실행
-기본 실행 (전체 수집)
+간편 실행 (권장)
+```
+./run
+```
+
+페이지 수 지정
+```
+./run page 5
+```
+
+필터 옵션 실행 (조건을 좁혀 빠르게 검증)
+```
+./run filter
+```
+
+interval 모드 (주기 실행)
+```
+./run interval 3600 2
+```
+
+기본 실행 (직접 옵션 지정)
 ```
 ./venv/bin/python main.py --max-pages 2
 ```
 
-필터 옵션 실행
+필터 옵션 실행 (조건을 좁혀 빠르게 검증)
 ```
 ./venv/bin/python main.py --max-pages 2 \
   --filter-pbanc-knd-cd 공440002 \
@@ -98,13 +121,32 @@ python3 -m venv venv
   --filter-bid-pgst-cd 입160003
 ```
 
-interval 모드
+interval 모드 (주기 실행)
 ```
 ./venv/bin/python main.py --mode interval --interval-sec 3600
 ```
+Windows는 `./venv/bin/python` 대신 `venv\\Scripts\\python`을 사용합니다.
+
+실행 파라미터 간단 설명
+- `--max-pages`: 목록 페이지 수 제한(1페이지=100건 기준)
+- `--mode interval`: 설정한 주기마다 반복 실행
+- `--interval-sec`: 반복 실행 간격(초)
+
+실행 스크립트
+- macOS/Linux: `./run`
+- Windows: `run.cmd` 또는 `run.ps1`
 
 ## 설정(config.yaml)
-주요 설정은 `config.yaml`에 있습니다.
+주요 설정은 `config.yaml`에 있습니다. 실행 전에 바꾸지 않아도 됩니다.
+간단 변경은 `run.py set`으로 가능합니다.
+```
+./run set crawl.max_pages 10
+./run set crawl.snapshot_enabled true
+```
+설정 키 목록 확인
+```
+./run set-keys
+```
 - `search_range_days`: 최근 N일 범위 자동 계산
 - `max_pages`: 페이지 제한
 - `snapshot_enabled`: 원본 JSON 저장 여부
@@ -112,10 +154,11 @@ interval 모드
 - `list_api_payload`: 검색 조건(날짜/필터 등)
 
 필터는 기본적으로 비워두고 전체 수집을 권장합니다.  
-필요 시 CLI 옵션으로 필터를 좁혀서 수집 범위를 제한할 수 있습니다.
+빠른 확인이 필요할 때만 CLI 옵션으로 필터를 좁혀 수집 범위를 제한하세요.
 
 ## 결과 확인
-출력 경로/파일명 규칙: `data/*.csv`
+출력 경로/파일명 규칙: `data/*.csv`  
+실행 후 아래 파일이 생성되면 정상 동작입니다.
 CSV는 `data/` 아래에 생성됩니다.
 - `data/bid_notice_list.csv`
 - `data/bid_notice_detail.csv`
