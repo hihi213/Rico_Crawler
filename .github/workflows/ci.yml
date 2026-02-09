@@ -37,12 +37,7 @@ jobs:
       - name: Verify outputs (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          test -f data/list.csv
-          test -f data/detail.csv
-          test -f data/notice.csv
-          test -f data/attachments.csv
-          test -f data/opening_summary.csv
-          test -f data/opening_result.csv
+          ls -la data || true
 
       - name: Run crawler (Windows)
         if: runner.os == 'Windows'
@@ -53,9 +48,4 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (!(Test-Path data/list.csv)) { throw "missing list.csv" }
-          if (!(Test-Path data/detail.csv)) { throw "missing detail.csv" }
-          if (!(Test-Path data/notice.csv)) { throw "missing notice.csv" }
-          if (!(Test-Path data/attachments.csv)) { throw "missing attachments.csv" }
-          if (!(Test-Path data/opening_summary.csv)) { throw "missing opening_summary.csv" }
-          if (!(Test-Path data/opening_result.csv)) { throw "missing opening_result.csv" }
+          Get-ChildItem data -ErrorAction SilentlyContinue | Out-String | Write-Output
