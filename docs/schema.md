@@ -89,6 +89,34 @@
 - 검색 버튼: `#mf_wfm_container_btnS0001`
 - 초기화 버튼: `#mf_wfm_container_btnIntz`
 
+### UI 검색 조건 → API 필터 매핑(권장)
+| UI 라벨 | UI 셀렉터 | API 필터 키 | 비고 |
+| --- | --- | --- | --- |
+| 입찰공고번호 | `#mf_wfm_container_tbxBidPbancNo` | `bidPbancNo` | 문자열 검색 |
+| 입찰공고명 | `#mf_wfm_container_tbxBidPbancNm` | `bidPbancNm` | 문자열 검색 |
+| 공고분류 | `#mf_wfm_container_sbxBsneClsf` | `prcmBsneSeCd` | 물품/용역/공사 |
+| 진행상태 | `#mf_wfm_container_sbxPrgrsStts` | `bidPbancPgstCd` | 예: 입찰개시=입160003 |
+| 공고구분 | `#mf_wfm_container_sbxBidPbancMth` | `pbancSttsCd` | 등록/변경/취소/재공고 |
+| 공고종류 | `#mf_wfm_container_tbxPbancKndCd` | `pbancKndCd` | 모의공고/실공고 등 |
+| 계약방법 | `#mf_wfm_container_tbxStdCtrtMthdCd` | `stdCtrtMthdCd` | 일반/지명/제한/수의 |
+| 낙찰방법 | `#mf_wfm_container_tbxScsbdMthdCd1` | `scsbdMthdCd` | 적격심사/최저가 등 |
+| 공고게시일자(시작/종료) | `#wq_uuid_1658_ibxStrDay` / `#wq_uuid_1658_ibxEndDay` | `pbancPstgStDt` / `pbancPstgEdDt` | YYYYMMDD |
+
+### 검색 옵션 코드값(확정/추정)
+> 네트워크 응답/페이로드 기준으로 확인된 코드만 기록. 미확정 항목은 추후 보강.
+
+#### 진행상태 (`bidPbancPgstCd`)
+- 입찰개시: `입160003` (확정)
+
+#### 공고종류 (`pbancKndCd`)
+- 모의공고: `공440001` (확정)
+- 실공고: `공440002` (확정)
+
+#### 공고구분 (`pbancSttsCd`)
+- 등록공고: `공5400001` (확정)
+- 변경공고: `공5400002` (확정)
+- 취소공고: `공5400003` (확정)
+
 ### 검색 조건(개찰일자 모드)
 - 개찰 조건 영역(숨김/토글): `#mf_wfm_container_grpSrchBox2`
 - 개찰일자 검색 버튼: `#mf_wfm_container_btnS0002`

@@ -43,6 +43,9 @@ class CrawlConfig(BaseModel):  # 크롤링 설정 모델.
     search_range_days: Optional[int] = None  # 동적 날짜 계산 범위(일).
     snapshot_enabled: bool = False  # 원본 JSON 스냅샷 저장 여부.
     snapshot_dir: str = "data/snapshots"  # 스냅샷 저장 경로.
+    list_filter_pbanc_knd_cd: Optional[str] = None  # 공고종류 필터(후처리).
+    list_filter_pbanc_stts_cd: Optional[str] = None  # 공고구분 필터(후처리).
+    list_filter_bid_pbanc_pgst_cd: Optional[str] = None  # 진행상태 필터(후처리).
     list_api_headers: dict[str, str] = Field(default_factory=dict)  # 목록 API 헤더.
     list_api_payload: dict[str, Any] = Field(default_factory=dict)  # 목록 API payload.
     detail_api_headers: dict[str, str] = Field(default_factory=dict)  # 상세 API 헤더.

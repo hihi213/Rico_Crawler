@@ -32,4 +32,5 @@ __pycache__/
 data/*.csv
 data/*.json
 data/backup/
+data/raw/
 /docs/learning_notes.md
