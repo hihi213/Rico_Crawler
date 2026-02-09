@@ -37,12 +37,12 @@ jobs:
       - name: Verify outputs (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          test -f data/bid_notice_list.csv
-          test -f data/bid_notice_detail.csv
-          test -f data/bid_notice_noce.csv
-          test -f data/bid_notice_attachment.csv
-          test -f data/bid_opening_summary.csv
-          test -f data/bid_opening_result.csv
+          test -f data/list.csv
+          test -f data/detail.csv
+          test -f data/notice.csv
+          test -f data/attachments.csv
+          test -f data/opening_summary.csv
+          test -f data/opening_result.csv
 
       - name: Run crawler (Windows)
         if: runner.os == 'Windows'
@@ -53,9 +53,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (!(Test-Path data/bid_notice_list.csv)) { throw "missing bid_notice_list.csv" }
-          if (!(Test-Path data/bid_notice_detail.csv)) { throw "missing bid_notice_detail.csv" }
-          if (!(Test-Path data/bid_notice_noce.csv)) { throw "missing bid_notice_noce.csv" }
-          if (!(Test-Path data/bid_notice_attachment.csv)) { throw "missing bid_notice_attachment.csv" }
-          if (!(Test-Path data/bid_opening_summary.csv)) { throw "missing bid_opening_summary.csv" }
-          if (!(Test-Path data/bid_opening_result.csv)) { throw "missing bid_opening_result.csv" }
+          if (!(Test-Path data/list.csv)) { throw "missing list.csv" }
+          if (!(Test-Path data/detail.csv)) { throw "missing detail.csv" }
+          if (!(Test-Path data/notice.csv)) { throw "missing notice.csv" }
+          if (!(Test-Path data/attachments.csv)) { throw "missing attachments.csv" }
+          if (!(Test-Path data/opening_summary.csv)) { throw "missing opening_summary.csv" }
+          if (!(Test-Path data/opening_result.csv)) { throw "missing opening_result.csv" }
