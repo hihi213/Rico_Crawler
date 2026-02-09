@@ -56,6 +56,17 @@
 - [x] 중복 방지 : 저장소/체크포인트 설계가 확정된 뒤 적용하는 게 안전
     - CSV 기준 `bid_pbanc_no` + `bid_pbanc_ord` 중복 스킵
     - in-memory set는 **옵션**으로 구현하거나 README에 제안만 해도 충분
+
+### 추가 개선 계획 (4~5단계 공통)
+- [ ] 상세 하위 리스트/맵 CSV 저장 확장
+    - bidPbancItemlist, bidLmtRgnList, bidLmtIntpList, dmLcnsLmtPrmsIntpList,
+      rbidList, bdngCrstList, bidPstmNomnEtpsList, bidInfoList, bsamtMap
+- [ ] 개찰결과 실데이터 더 확보
+    - 결과가 존재하는 페이지 범위 확대 테스트 및 저장 확인
+- [ ] 필드 정규화 보완
+    - 숫자/날짜 포맷 다양성 추가 대응(상세 리스트에도 적용)
+- [ ] (선택) 구조화 로그
+    - “가능하면” 요구 충족을 위해 structlog 전환 고려
         
 
 ## 5단계: 운영 모드 & 로그 (Day 4)
