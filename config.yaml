@@ -30,7 +30,7 @@ crawl:
     pbancPstgEdDt: "20260209"
     onbsPrnmntStDt: "20260209"
     onbsPrnmntEdDt: "20260311"
-    recordCountPerPage: "10"
+    recordCountPerPage: "100"
     rowNum: ""
     kbrdrId: ""
     pbancInstUntyGrpNo: ""

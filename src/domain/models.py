@@ -321,6 +321,12 @@ class BidOpeningResult(BidNoticeKey):  # 개찰결과 목록 모델.
     def _parse_opening_flag(cls, value: Optional[str]) -> Optional[bool]:  # 사전판정 플래그.
         return _parse_bool_yn(value)  # 공통 파서 사용.
 
+    @_before_validator("ibx_evl_scr_prpl", "ibx_evl_scr_prce", "ibx_evl_scr_ovrl")  # 점수 정규화.
+    def _normalize_eval_scores(cls, value: Optional[str]) -> Optional[str]:  # 점수 문자열화.
+        if value is None:
+            return None
+        return str(value).strip() or None
+
 
 class AttachmentItem(BaseModel):  # 첨부 메타 모델.
     # 상세/공지 API의 unty_atch_file_no로 연결되는 첨부 메타.
