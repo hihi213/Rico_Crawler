@@ -425,6 +425,12 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             target = mapping.get(key)
             if target:
                 mapped[target] = value
+            if key == "ibxEvlScrPrpl":
+                mapped["ibx_evl_scr_prpl_num"] = value
+            if key == "ibxEvlScrPrce":
+                mapped["ibx_evl_scr_prce_num"] = value
+            if key == "ibxEvlScrOvrl":
+                mapped["ibx_evl_scr_ovrl_num"] = value
         return mapped
 
     def _open_detail_and_fetch(self, page: Any, index: int) -> dict[str, Any]:  # 상세 팝업 열기.

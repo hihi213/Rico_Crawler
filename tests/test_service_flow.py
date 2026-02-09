@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.infrastructure.checkpoint import CheckpointStore
+
 from src.core.config import CrawlConfig, Selectors
 from src.service.crawler_service import CrawlerService
 
@@ -14,6 +16,20 @@ class StubRepository:
     def save_list_items(self, items: list[Any]) -> None:
         self.saved_items.extend(items)
 
+    def save_detail_items(self, items: list[Any]) -> None:
+        return None
+
+    def save_noce_items(self, items: list[Any]) -> None:
+        return None
+
+    def save_attachment_items(self, items: list[Any]) -> None:
+        return None
+
+    def save_opening_summary_items(self, items: list[Any]) -> None:
+        return None
+
+    def save_opening_result_items(self, items: list[Any]) -> None:
+        return None
 
 @dataclass
 class StubParser:
@@ -56,6 +72,7 @@ def test_crawler_service_min_flow() -> None:
     config = CrawlConfig(
         base_url="https://example.com",
         list_url="https://example.com/list",
+        detail_api_url="https://example.com/detail",
         max_pages=1,
         timeout_ms=5000,
         retry_count=1,
@@ -96,7 +113,8 @@ def test_crawler_service_min_flow() -> None:
     }
     repo = StubRepository()
     parser = StubParser(rows=[raw_row])
-    service = CrawlerService(config, repo, parser)
+    checkpoint = CheckpointStore("data/test_checkpoint.json")
+    service = CrawlerService(config, repo, parser, checkpoint)
 
     service.run(StubPage(), max_pages=1)
 

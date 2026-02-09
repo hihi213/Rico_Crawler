@@ -60,6 +60,17 @@ def _parse_int(value: Optional[str]) -> Optional[int]:  # 금액/숫자 필드 �
     return int(raw)  # 숫자로 변환.
 
 
+def _parse_float(value: Optional[str]) -> Optional[float]:  # 부동소수점 정규화.
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    raw = str(value).replace(",", "").strip()
+    if raw == "":
+        return None
+    return float(raw)
+
+
 def _parse_datetime(value: Optional[str]) -> Optional[datetime]:  # 날짜/시간 문자열 파싱.
     if value is None:  # 값이 없으면 None 유지.
         return None  # None 반환.
@@ -299,6 +310,9 @@ class BidOpeningResult(BidNoticeKey):  # 개찰결과 목록 모델.
     ibx_evl_scr_prpl: Optional[str] = None  # 제안서 평가점수.
     ibx_evl_scr_prce: Optional[str] = None  # 가격 평가점수.
     ibx_evl_scr_ovrl: Optional[str] = None  # 총점.
+    ibx_evl_scr_prpl_num: Optional[float] = None  # 제안서 평가점수(숫자).
+    ibx_evl_scr_prce_num: Optional[float] = None  # 가격 평가점수(숫자).
+    ibx_evl_scr_ovrl_num: Optional[float] = None  # 총점(숫자).
     sfbr_slctn_ord: Optional[str] = None  # 낙찰자선정 차수.
     sfbr_slctn_rslt_cd: Optional[str] = None  # 낙찰자선정 결과 코드.
 
@@ -326,6 +340,14 @@ class BidOpeningResult(BidNoticeKey):  # 개찰결과 목록 모델.
         if value is None:
             return None
         return str(value).strip() or None
+
+    @_before_validator(  # 점수 숫자화.
+        "ibx_evl_scr_prpl_num",
+        "ibx_evl_scr_prce_num",
+        "ibx_evl_scr_ovrl_num",
+    )
+    def _normalize_eval_scores_num(cls, value: Optional[str]) -> Optional[float]:  # 점수 숫자화.
+        return _parse_float(value)
 
 
 class AttachmentItem(BaseModel):  # 첨부 메타 모델.
