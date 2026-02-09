@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from src.infrastructure.checkpoint import CheckpointStore
 
 from src.core.config import CrawlConfig, Selectors
 from src.service.crawler_service import CrawlerService
+from src.infrastructure.parser import NoticeParser
+from src.infrastructure.repository import NoticeRepository
 
 
 @dataclass
@@ -111,8 +113,8 @@ def test_crawler_service_min_flow() -> None:
         "recordCountPerPage": "10",
         "nextRowYn": "N",
     }
-    repo = StubRepository()
-    parser = StubParser(rows=[raw_row])
+    repo = cast(NoticeRepository, StubRepository())
+    parser = cast(NoticeParser, StubParser(rows=[raw_row]))
     checkpoint = CheckpointStore("data/test_checkpoint.json")
     service = CrawlerService(config, repo, parser, checkpoint)
 

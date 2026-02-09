@@ -34,3 +34,6 @@ data/*.json
 data/backup/
 data/raw/
 /docs/learning_notes.md
+# Python virtualenv
+venv/
+.venv/

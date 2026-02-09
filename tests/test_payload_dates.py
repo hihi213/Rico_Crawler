@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from src.core.config import CrawlConfig, Selectors
 from src.infrastructure.checkpoint import CheckpointStore
+from src.infrastructure.parser import NoticeParser
+from src.infrastructure.repository import NoticeRepository
 from src.service.crawler_service import CrawlerService
 
 
@@ -56,8 +58,8 @@ def _build_service(
         list_api_payload=payload,
         selectors=Selectors(list_row="#list tr", list_link="#list a"),
     )
-    repo = StubRepository()
-    parser = StubParser()
+    repo = cast(NoticeRepository, StubRepository())
+    parser = cast(NoticeParser, StubParser())
     checkpoint = CheckpointStore(str(tmp_path / "checkpoint.json"))
     return CrawlerService(config, repo, parser, checkpoint)
 

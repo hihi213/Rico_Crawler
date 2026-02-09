@@ -2,7 +2,6 @@ from __future__ import annotations  # 타입 힌트 전방 참조 허용.
 
 import json  # JSON 직렬화.
 import logging  # 로깅.
-from datetime import datetime  # 타임스탬프 생성.
 from datetime import datetime, timedelta  # 날짜 처리 모듈.
 from typing import Any, Optional  # 범용 타입과 선택적 타입.
 
