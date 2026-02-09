@@ -7,6 +7,7 @@ from src.core.config import Selectors  # 셀렉터 설정 모델.
 
 
 class NoticeParser:  # 파싱 로직 인터페이스.
+    """현재는 Playwright DOM 기반이며, Selectolax 도입은 추후 계획."""
     def __init__(self, selectors: Selectors) -> None:  # 셀렉터(CSS 선택자 모음) 주입.
         self._selectors = selectors  # 셀렉터 보관.
         self._logger = logging.getLogger("parser")  # 로거 생성.

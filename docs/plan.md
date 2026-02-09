@@ -32,7 +32,7 @@
 - [x] Playwright 설치 및 브라우저 준비
     - `playwright install`
 - [x] 프로젝트 구조 잡기
-    - `src/domain`, `src/scraper`, `src/repository`, `src/service`, `src/utils`
+    - `src/domain`, `src/infrastructure`, `src/service`, `src/core`
 - [x] 간단한 로깅 설정 (structlog 또는 logging 한쪽 선택)
     
 
@@ -89,36 +89,6 @@
 - 최종 점검
     - Ctrl+C 후 resume 확인
     - 다른 디렉터리에서 새 venv로 README만 보고 돌아가는지 테스트
-
-## 평가 계획 (com.md 기준)
-
-### 1. 정확성(필드 추출/정규화)
-- 목록/상세/공지/첨부/개찰 CSV 생성 여부 확인
-- 날짜/금액/플래그/텍스트 정규화 샘플 검증
-- `docs/schema.md` 대비 필수 필드 누락 점검
-
-### 2. 견고함(예외/노이즈 대응)
-- 스킵/재시도 로그 확인(`list_row_skip`, `detail_api_skip` 등)
-- 중복 제거 로그(`dedupe_skipped`) 확인
-- 페이지 단위 스킵 집계 로그 확인
-
-### 3. 재현성(로컬 재현)
-- README만 보고 설치/실행 가능 여부 확인
-- 동일 조건에서 CSV 재생성 확인
-- `--reset-checkpoint`로 초기 수집 가능 여부 확인
-
-### 4. 제품 수준 우대(운영성)
-- 체크포인트 기반 재실행 확인
-- interval 모드 동작 확인
-- 스냅샷 옵션 ON/OFF 정상 동작 확인
-
-### 5. 실동작 검증
-- 실시간 공고 기준 최소 50건 이상 수집
-- 실행 로그 + CSV row count 증빙 확보
-
-### 6. 문서/테스트
-- `docs/decision_log.md`, `docs/troubleshooting.md` 최신 기록 확인
-- pytest 최소 테스트 수행 기록 확보
 
 ### 7. Windows 가상환경 검증(재현성)
 - PowerShell에서 venv 생성/활성화
@@ -181,7 +151,9 @@
 
 ### 3.4. 재현성/로깅/병렬화 (보류 메모)
 
-* Docker 컨테이너 환경을 구성하여, OS나 로컬 환경에 구애받지 않고 `docker-compose up` 명령어로 즉시 실행 가능한 환경 제공.
+* Docker는 과제 범위에서 제외. 로컬 실행 절차 표준화로 재현성을 확보한다.
+* SQLite 저장은 연동 작업 진행 중이며, 현재는 CSV 저장을 기준으로 검증한다.
+* Selectolax는 파싱 병목 확인 시 도입 계획으로 보류한다.
 * 표준 로깅 포맷과 레벨링을 적용하여 장애 원인과 수집 진행 상황을 추적 가능하도록 설계.
 * 핵심 이벤트(페이지 이동, 추출 성공/실패, 재시도)를 구조화된 로그로 남겨 재현성을 강화.
 * Playwright Async로 탭/컨텍스트 병렬화가 가능하여 현실적인 처리량 확보.

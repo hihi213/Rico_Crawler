@@ -24,6 +24,11 @@ docs/                # 결정 기록/트러블슈팅/스키마
 ```
 
 ## 실행 방법
+### 0) 권장 Python 버전
+```
+3.11.14
+```
+
 ### 1) 가상환경 + 의존성 설치
 ```
 python3 -m venv venv
@@ -37,6 +42,15 @@ python -m venv venv
 venv\Scripts\pip install -r requirements.txt
 venv\Scripts\python -m playwright install
 ```
+
+### OS별 Playwright 설치 참고
+- macOS: `python -m playwright install` 실행 후, 시스템 권한 팝업이 뜨면 허용
+- Windows: `venv\\Scripts\\python -m playwright install` 실행 후, PowerShell 실행 정책 문제 시 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+- Linux: Playwright 브라우저 의존성 미설치 시 `python -m playwright install --with-deps`
+
+### 의존성 재현성 정책
+- 모든 패키지 버전은 `requirements.txt`에서 고정 관리합니다.
+- 버전 변경 시 `requirements.txt`와 README의 실행 절차를 함께 업데이트합니다.
 
 ### 2) 기본 실행 (전체 수집)
 ```
@@ -93,8 +107,6 @@ CSV는 `data/` 아래에 생성됩니다.
 ## 실동작 검증
 - 2026-02-09 기준 실제 누리장터에서 1페이지(100건) 수집 확인
 - 필터 조합 6개 × 2페이지 수집 후 HTML 엔티티 전수 스캔 0건 확인
-
-
 
 ## 문서
 - 결정 기록: `docs/decision_log.md`

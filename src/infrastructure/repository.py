@@ -23,6 +23,7 @@ _OPENING_RESULT_UNIQUE_KEYS = ("bid_pbanc_no", "bid_pbanc_ord", "bid_clsf_no", "
 
 
 class NoticeRepository:  # 저장소 인터페이스.
+    """현재는 CSV 저장소이며, SQLite 저장은 추후 도입 예정이다."""
     def __init__(self, sqlite_path: str) -> None:  # DB 경로 주입.
         self._sqlite_path = sqlite_path  # 경로 보관
         self._logger = logging.getLogger("repository")  # 로거 생성.
