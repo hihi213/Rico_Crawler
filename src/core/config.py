@@ -32,6 +32,9 @@ class CrawlConfig(BaseModel):  # 크롤링 설정 모델.
     list_url: str  # 목록 URL.
     list_api_url: Optional[str] = None  # 목록 API URL.
     detail_api_url: str  # 상세 API URL.
+    noce_api_url: Optional[str] = None  # 공지/변경 상세 API URL.
+    attachment_api_url: Optional[str] = None  # 첨부 목록 API URL.
+    opening_api_url: Optional[str] = None  # 개찰결과 API URL.
     max_pages: int  # 최대 페이지 수.
     timeout_ms: int  # 타임아웃(ms).
     retry_count: int  # 재시도 횟수.
@@ -39,6 +42,14 @@ class CrawlConfig(BaseModel):  # 크롤링 설정 모델.
     user_agent: str  # 사용자 에이전트.
     list_api_headers: dict[str, str] = Field(default_factory=dict)  # 목록 API 헤더.
     list_api_payload: dict[str, Any] = Field(default_factory=dict)  # 목록 API payload.
+    detail_api_headers: dict[str, str] = Field(default_factory=dict)  # 상세 API 헤더.
+    detail_api_payload: dict[str, Any] = Field(default_factory=dict)  # 상세 API payload.
+    noce_api_headers: dict[str, str] = Field(default_factory=dict)  # 공지 상세 API 헤더.
+    noce_api_payload: dict[str, Any] = Field(default_factory=dict)  # 공지 상세 API payload.
+    attachment_api_headers: dict[str, str] = Field(default_factory=dict)  # 첨부 API 헤더.
+    attachment_api_payload: dict[str, Any] = Field(default_factory=dict)  # 첨부 API payload.
+    opening_api_headers: dict[str, str] = Field(default_factory=dict)  # 개찰 API 헤더.
+    opening_api_payload: dict[str, Any] = Field(default_factory=dict)  # 개찰 API payload.
     selectors: Selectors  # 셀렉터 설정.
 
 

@@ -350,9 +350,32 @@ class AttachmentItem(BaseModel):  # 첨부 메타 모델.
     def _parse_file_sizes(cls, value: Optional[str]) -> Optional[int]:  # 파일 크기 정규화.
         return _parse_int(value)  # 공통 파서 사용.
 
+    @_before_validator("inpt_dt")  # 등록일시 파싱.
+    def _parse_inpt_dt(cls, value: Optional[str]) -> Optional[datetime]:  # 첨부 등록일 파싱.
+        return _parse_datetime(value)  # 공통 파서 사용.
+
     @_before_validator("dwnld_prms_yn")  # 다운로드 허용 여부 파싱.
     def _parse_download_flag(cls, value: Optional[str]) -> Optional[bool]:  # 다운로드 플래그.
         return _parse_bool_yn(value)  # 공통 파서 사용.
+
+
+class NoceItem(BaseModel):  # 공지/변경 공고 상세 모델.
+    pst_no: str  # 게시 번호.
+    bbs_no: str  # 게시판/공고 번호.
+    pst_nm: str  # 게시 제목.
+    unty_atch_file_no: Optional[str] = None  # 첨부파일 그룹 키.
+    use_yn: Optional[bool] = None  # 사용 여부.
+    inpt_dt: Optional[datetime] = None  # 등록일시.
+    odn3_col_cn: Optional[str] = None  # 기타 컬럼.
+    bulk_pst_cn: Optional[str] = None  # 본문/내용.
+
+    @_before_validator("use_yn")  # 사용 여부 파싱.
+    def _parse_use_yn(cls, value: Optional[str]) -> Optional[bool]:  # 사용 여부 정규화.
+        return _parse_bool_yn(value)  # 공통 파서 사용.
+
+    @_before_validator("inpt_dt")  # 등록일시 파싱.
+    def _parse_inpt_dt(cls, value: Optional[str]) -> Optional[datetime]:  # 공지 일시 파싱.
+        return _parse_datetime(value)  # 공통 파서 사용.
 
 
 class CommCd(BaseModel):  # 코드 사전 모델.

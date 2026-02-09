@@ -280,6 +280,78 @@
 1) 목록 API 1페이지 수집 중 `slprRcptDdlnDt=null` 케이스 확인
 2) 스키마/모델 불일치 판단 후 Optional로 조정
 
+## 목록 수집을 API 직호출로 전환 (2026-02-09)
+
+### 결정
+- 목록 페이지 DOM 크롤링 대신 `selectBidPbancList.do` API를 직접 호출
+- `dlParamM` payload 및 필수 헤더(Menu-Info/Target-Id 등)를 설정으로 고정
+
+### 이유(실무 관점)
+- UI 그리드가 초기 로드에서 데이터가 비어 있고 검색 버튼이 숨김 처리되어 자동화 실패
+- API 호출이 가장 안정적이며 재시도/페이징 제어가 명확함
+
+### 진행 과정
+1) 네트워크 탭에서 `dlParamM` payload와 헤더를 캡처
+2) `config.yaml`에 payload/headers 템플릿 추가
+3) Service에서 API 호출 경로를 우선 사용하도록 분기
+
+## 체크포인트 JSON 저장 (2026-02-09)
+
+### 결정
+- 체크포인트를 `data/checkpoint.json`에 원자적으로 저장
+- 저장 시점은 페이지 처리 직후, 재시작은 `current_page` 기준
+
+### 이유(실무 관점)
+- 간단한 파일 기반 체크포인트가 구현/복구가 빠름
+- 원자적 교체로 중간 파일 손상 방지
+
+### 진행 과정
+1) `CheckpointStore`로 저장/로드 구현
+2) Service에서 시작 페이지 로드 및 페이지별 저장 연동
+
+## CSV 기반 중복 방지 (2026-02-09)
+
+### 결정
+- 목록: `bid_pbanc_no + bid_pbanc_ord`
+- 상세: `bid_pbanc_no + bid_pbanc_ord + bid_clsf_no + bid_prgrs_ord`
+- 기존 CSV에서 키를 로드해 중복을 스킵
+
+### 이유(실무 관점)
+- SQLite 전환 전 단계에서 빠른 중복 방지 필요
+- 재실행 시 중복 적재 방지
+
+### 진행 과정
+1) CSV 로드 시 키 캐시 구성
+2) 저장 전 중복 필터링 적용
+
+## tenacity 재시도 적용 (2026-02-09)
+
+### 결정
+- 목록 API 호출과 상세 팝업 응답에 tenacity 재시도 적용
+
+### 이유(실무 관점)
+- 네트워크/일시 오류로 인한 실패를 자동 복구
+- 실패 항목은 스킵 로그로 남겨 전체 수집을 유지
+
+### 진행 과정
+1) 목록 API 호출에 retry wrapper 적용
+2) 상세 팝업 호출에도 동일한 retry 정책 적용
+
+## 첨부/공지/개찰 CSV 저장 확장 (2026-02-09)
+
+### 결정
+- 공지/첨부/개찰요약/개찰결과를 별도 CSV로 분리 저장
+- 첨부 `inpt_dt`는 목록/상세와 동일 포맷 파서로 정규화
+
+### 이유(실무 관점)
+- 1:N 구조를 분리해 저장해야 데이터 정합성과 조회가 안정적임
+- 첨부 등록일이 `YYYY/MM/DD HH:mm:ss` 형식으로 내려와 파서 보완이 필요
+
+### 진행 과정
+1) Repository에 `bid_notice_noce.csv`, `bid_notice_attachment.csv`, `bid_opening_summary.csv`, `bid_opening_result.csv` 추가
+2) Service에서 수집된 공지/첨부/개찰 데이터를 저장으로 연결
+3) AttachmentItem `inpt_dt` 정규화 validator 추가
+
 ## Service 목록 변환/저장 책임 분리
 
 ### 결정

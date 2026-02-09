@@ -39,3 +39,31 @@ class NoticeParser:  # 파싱 로직 인터페이스.
             return {}  # 빈 결과 반환.
         self._logger.info("parsed_detail_keys=%s", len(detail))  # 상세 파싱 로그.
         return detail  # 상세 원본 맵 반환.
+
+    def parse_noce(self, payload: dict[str, Any]) -> list[dict[str, Any]]:  # 공지/변경 공고 파싱.
+        result = payload.get("result", {}) if isinstance(payload, dict) else {}  # 응답 안전 처리.
+        items = result.get("noceList", [])  # 공지 리스트 추출.
+        if not isinstance(items, list):  # 예상 타입이 아니면.
+            self._logger.warning("noce_payload_invalid")  # 경고 로그.
+            return []  # 빈 결과 반환.
+        self._logger.info("parsed_noce_rows=%s", len(items))  # 파싱 로그.
+        return items  # 원본 리스트 반환.
+
+    def parse_opening(self, payload: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:  # 개찰 결과 파싱.
+        result = payload.get("result", {}) if isinstance(payload, dict) else {}  # 응답 안전 처리.
+        summary = result.get("pbancMap", {})  # 요약 맵 추출.
+        rows = result.get("oobsRsltList", [])  # 개찰 목록 추출.
+        if not isinstance(summary, dict):  # 요약이 dict가 아니면.
+            summary = {}  # 빈 맵.
+        if not isinstance(rows, list):  # 목록이 list가 아니면.
+            rows = []  # 빈 리스트.
+        self._logger.info("parsed_opening summary_keys=%s rows=%s", len(summary), len(rows))  # 파싱 로그.
+        return summary, rows  # 요약/목록 반환.
+
+    def parse_attachments(self, payload: dict[str, Any]) -> list[dict[str, Any]]:  # 첨부 목록 파싱.
+        result = payload.get("dlUntyAtchFileL", []) if isinstance(payload, dict) else []  # 첨부 리스트.
+        if not isinstance(result, list):  # 예상 타입이 아니면.
+            self._logger.warning("attachment_payload_invalid")  # 경고 로그.
+            return []  # 빈 결과 반환.
+        self._logger.info("parsed_attachment_rows=%s", len(result))  # 파싱 로그.
+        return result  # 첨부 리스트 반환.

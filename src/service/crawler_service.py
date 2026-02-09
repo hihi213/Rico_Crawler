@@ -4,8 +4,17 @@ import json  # JSON 직렬화.
 import logging  # 로깅.
 from typing import Any, Optional  # 범용 타입과 선택적 타입.
 
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+
 from src.core.config import CrawlConfig  # 크롤링 설정 모델.
-from src.domain.models import BidNoticeDetail, BidNoticeListItem  # 도메인 모델.
+from src.domain.models import (
+    AttachmentItem,
+    BidNoticeDetail,
+    BidNoticeListItem,
+    BidOpeningResult,
+    BidOpeningSummary,
+    NoceItem,
+)  # 도메인 모델.
 from src.infrastructure.checkpoint import CheckpointStore, CrawlCheckpoint  # 체크포인트 저장소.
 from src.infrastructure.parser import NoticeParser  # 파서 인터페이스.
 from src.infrastructure.repository import NoticeRepository  # 저장소 인터페이스.
@@ -38,11 +47,32 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             for page_index in range(start_page, target_pages + 1):  # 페이지 반복.
                 raw_rows = self._fetch_list_via_api(page, page_index)  # API 목록 호출.
                 items = self._build_list_items(raw_rows)  # 목록 모델 생성.
-                detail_items = [self._build_detail_from_list(item, {}) for item in items]  # 상세 기본 생성.
+                detail_items: list[BidNoticeDetail] = []  # 상세 모델 리스트.
+                opening_summaries: list[BidOpeningSummary] = []  # 개찰 요약 리스트.
+                opening_results: list[BidOpeningResult] = []  # 개찰 결과 리스트.
+                attachments: list[AttachmentItem] = []  # 첨부 리스트.
+                noce_items: list[NoceItem] = []  # 공지 리스트.
+                for item in items:  # 상세/부가 데이터 수집.
+                    detail_raw = self._fetch_detail_via_api(page, item)  # 상세 API 호출.
+                    detail_items.append(self._build_detail_from_list(item, detail_raw))  # 상세 모델 생성.
+                    noce_items.extend(self._build_noce_items(page, item))  # 공지 리스트.
+                    attachments.extend(self._build_attachment_items(page, detail_raw))  # 첨부 리스트.
+                    opening_summary, opening_rows = self._build_opening_items(page, item)  # 개찰 결과.
+                    if opening_summary is not None:
+                        opening_summaries.append(opening_summary)
+                    opening_results.extend(opening_rows)
                 if items:  # 저장할 항목이 있으면.
                     self._repo.save_list_items(items)  # 목록 저장.
                 if detail_items:  # 상세 항목이 있으면.
                     self._repo.save_detail_items(detail_items)  # 상세 저장.
+                if noce_items:  # 공지 저장.
+                    self._repo.save_noce_items(noce_items)
+                if attachments:  # 첨부 저장.
+                    self._repo.save_attachment_items(attachments)
+                if opening_summaries:  # 개찰 요약 저장.
+                    self._repo.save_opening_summary_items(opening_summaries)
+                if opening_results:  # 개찰 결과 저장.
+                    self._repo.save_opening_result_items(opening_results)
                 self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
             self._logger.info("crawl_done")  # 종료 로그.
             return  # API 경로는 여기서 종료.
@@ -83,21 +113,33 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         self._logger.info("crawl_done")  # 종료 로그.
 
     def _fetch_list_via_api(self, page: Any, current_page: int) -> list[dict[str, Any]]:  # 목록 API 호출.
-        payload = dict(self._config.list_api_payload)  # 원본 보호.
-        payload["currentPage"] = current_page  # 페이지 갱신.
-        resp = page.request.post(  # API 호출.
-            self._config.list_api_url,
-            data=json.dumps({"dlParamM": payload}),
-            headers=self._config.list_api_headers,
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
         )
-        body = resp.json()  # JSON 파싱.
-        if body.get("ErrorCode") != 0:  # 오류 처리.
-            self._logger.warning("list_api_error code=%s msg=%s", body.get("ErrorCode"), body.get("ErrorMsg"))
+        def _call() -> list[dict[str, Any]]:
+            payload = dict(self._config.list_api_payload)  # 원본 보호.
+            payload["currentPage"] = current_page  # 페이지 갱신.
+            resp = page.request.post(  # API 호출.
+                self._config.list_api_url,
+                data=json.dumps({"dlParamM": payload}),
+                headers=self._config.list_api_headers,
+            )
+            body = resp.json()  # JSON 파싱.
+            if body.get("ErrorCode") != 0:  # 오류 처리.
+                raise RuntimeError(f"list_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
+            result = body.get("result", [])  # 결과 리스트.
+            if not isinstance(result, list):
+                raise RuntimeError("list_api_invalid_result")
+            return result
+
+        try:
+            return _call()
+        except Exception as exc:
+            self._logger.warning("list_api_skip err=%s page=%s", exc, current_page)
             return []
-        result = body.get("result", [])  # 결과 리스트.
-        if not isinstance(result, list):
-            return []
-        return result
 
     def _build_list_items(self, raw_rows: list[dict[str, Any]]) -> list[BidNoticeListItem]:  # 목록 모델 생성.
         items: list[BidNoticeListItem] = []  # 변환된 모델 리스트.
@@ -111,16 +153,303 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                 continue  # 다음 행.
         return items
 
+    def _fetch_detail_via_api(self, page: Any, item: BidNoticeListItem) -> dict[str, Any]:  # 상세 API 호출.
+        if not self._config.detail_api_url:  # 설정이 없으면.
+            return {}  # 빈 결과.
+        payload = dict(self._config.detail_api_payload)  # 원본 보호.
+        payload.update(  # 필수 키 채우기.
+            {
+                "bidPbancNo": item.bid_pbanc_no,
+                "bidPbancOrd": item.bid_pbanc_ord,
+                "bidClsfNo": item.bid_clsf_no or "",
+                "bidPrgrsOrd": item.bid_prgrs_ord or "",
+                "pstNo": item.bid_pbanc_no,
+            }
+        )
+
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call() -> dict[str, Any]:
+            resp = page.request.post(
+                self._config.detail_api_url,
+                data=json.dumps({"dlSrchCndtM": payload}),
+                headers=self._config.detail_api_headers,
+            )
+            body = resp.json()
+            if body.get("ErrorCode") != 0:
+                raise RuntimeError(f"detail_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
+            return self._parser.parse_detail(body)
+
+        try:
+            return _call()
+        except Exception as exc:
+            self._logger.warning("detail_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            return {}
+
+    def _build_noce_items(self, page: Any, item: BidNoticeListItem) -> list[NoceItem]:  # 공지 항목 생성.
+        if not self._config.noce_api_url:
+            return []
+        payload = dict(self._config.noce_api_payload)
+        payload.update(
+            {
+                "bidPbancNo": item.bid_pbanc_no,
+                "bidPbancOrd": item.bid_pbanc_ord,
+                "bidClsfNo": item.bid_clsf_no or "",
+                "bidPrgrsOrd": item.bid_prgrs_ord or "",
+                "pstNo": item.bid_pbanc_no,
+            }
+        )
+
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call() -> list[dict[str, Any]]:
+            resp = page.request.post(
+                self._config.noce_api_url,
+                data=json.dumps({"dlSrchCndtM": payload}),
+                headers=self._config.noce_api_headers,
+            )
+            body = resp.json()
+            if body.get("ErrorCode") != 0:
+                raise RuntimeError(f"noce_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
+            return self._parser.parse_noce(body)
+
+        try:
+            rows = _call()
+        except Exception as exc:
+            self._logger.warning("noce_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            return []
+        results: list[NoceItem] = []
+        for row in rows:
+            mapped = {
+                "pst_no": row.get("pstNo"),
+                "bbs_no": row.get("bbsNo"),
+                "pst_nm": row.get("pstNm"),
+                "unty_atch_file_no": row.get("untyAtchFileNo"),
+                "use_yn": row.get("useYn"),
+                "inpt_dt": row.get("inptDt"),
+                "odn3_col_cn": row.get("odn3ColCn"),
+                "bulk_pst_cn": row.get("bulkPstCn"),
+            }
+            try:
+                results.append(NoceItem(**mapped))
+            except Exception as exc:
+                self._logger.warning("noce_row_skip err=%s raw=%s", exc, row)
+        return results
+
+    def _build_attachment_items(self, page: Any, detail_raw: dict[str, Any]) -> list[AttachmentItem]:  # 첨부 항목 생성.
+        if not self._config.attachment_api_url:
+            return []
+        unty_atch_file_no = detail_raw.get("untyAtchFileNo")
+        if not unty_atch_file_no:
+            return []
+        payload = dict(self._config.attachment_api_payload)
+        payload["untyAtchFileNo"] = unty_atch_file_no
+
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call() -> list[dict[str, Any]]:
+            resp = page.request.post(
+                self._config.attachment_api_url,
+                data=json.dumps({"dlUntyAtchFileM": payload}),
+                headers=self._config.attachment_api_headers,
+            )
+            body = resp.json()
+            if body.get("ErrorCode") != 0:
+                raise RuntimeError(
+                    f"attachment_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}"
+                )
+            return self._parser.parse_attachments(body)
+
+        try:
+            rows = _call()
+        except Exception as exc:
+            self._logger.warning("attachment_api_skip err=%s key=%s", exc, unty_atch_file_no)
+            return []
+        results: list[AttachmentItem] = []
+        for row in rows:
+            mapped = {
+                "unty_atch_file_no": row.get("untyAtchFileNo"),
+                "atch_file_sqno": row.get("atchFileSqno"),
+                "bsne_clsf_cd": row.get("bsneClsfCd"),
+                "atch_file_knd_cd": row.get("atchFileKndCd"),
+                "atch_file_nm": row.get("atchFileNm"),
+                "orgnl_atch_file_nm": row.get("orgnlAtchFileNm"),
+                "file_extn_nm": row.get("fileExtnNm"),
+                "file_sz": row.get("fileSz"),
+                "encr_bef_file_sz": row.get("encrBefFileSz"),
+                "img_url": row.get("imgUrl"),
+                "atch_file_dscr": row.get("atchFileDscr"),
+                "mcsc_chck_id_val": row.get("mcscChckIdVal"),
+                "dwnld_prms_yn": row.get("dwnldPrmsYn"),
+                "kbrdr_id": row.get("kbrdrId"),
+                "kbrdr_nm": row.get("kbrdrNm"),
+                "inpt_dt": row.get("inptDt"),
+                "atch_file_path_nm": row.get("atchFilePathNm"),
+                "tbl_nm": row.get("tblNm"),
+                "col_nm": row.get("colNm"),
+                "atch_file_rmrk_cn": row.get("atchFileRmrkCn"),
+            }
+            try:
+                results.append(AttachmentItem(**mapped))
+            except Exception as exc:
+                self._logger.warning("attachment_row_skip err=%s raw=%s", exc, row)
+        return results
+
+    def _build_opening_items(
+        self, page: Any, item: BidNoticeListItem
+    ) -> tuple[Optional[BidOpeningSummary], list[BidOpeningResult]]:  # 개찰 항목 생성.
+        if not self._config.opening_api_url:
+            return None, []
+        if not item.bid_clsf_no or not item.bid_prgrs_ord:
+            return None, []
+        payload = dict(self._config.opening_api_payload)
+        payload.update(
+            {
+                "bidPbancNo": item.bid_pbanc_no,
+                "bidPbancOrd": item.bid_pbanc_ord,
+                "bidClsfNo": item.bid_clsf_no,
+                "bidPrgrsOrd": item.bid_prgrs_ord,
+            }
+        )
+
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+            resp = page.request.post(
+                self._config.opening_api_url,
+                data=json.dumps({"dlSrchCndtM": payload}),
+                headers=self._config.opening_api_headers,
+            )
+            body = resp.json()
+            if body.get("ErrorCode") != 0:
+                raise RuntimeError(f"opening_api_error code={body.get('ErrorCode')} msg={body.get('ErrorMsg')}")
+            return self._parser.parse_opening(body)
+
+        try:
+            summary_raw, rows_raw = _call()
+        except Exception as exc:
+            self._logger.warning("opening_api_skip err=%s key=%s", exc, item.bid_pbanc_no)
+            return None, []
+        summary = None
+        if summary_raw:
+            mapped = self._map_opening_summary(summary_raw)
+            try:
+                summary = BidOpeningSummary(**mapped)
+            except Exception as exc:
+                self._logger.warning("opening_summary_skip err=%s raw=%s", exc, summary_raw)
+        results: list[BidOpeningResult] = []
+        for row in rows_raw:
+            mapped = self._map_opening_result(row)
+            try:
+                results.append(BidOpeningResult(**mapped))
+            except Exception as exc:
+                self._logger.warning("opening_row_skip err=%s raw=%s", exc, row)
+        return summary, results
+
+    def _map_opening_summary(self, raw: dict[str, Any]) -> dict[str, Any]:  # 개찰 요약 매핑.
+        mapping = {
+            "bidPbancNo": "bid_pbanc_no",
+            "bidPbancOrd": "bid_pbanc_ord",
+            "bidClsfNo": "bid_clsf_no",
+            "bidPrgrsOrd": "bid_prgrs_ord",
+            "bidPbancNm": "bid_pbanc_nm",
+            "bidPbancNum": "bid_pbanc_num",
+            "pbancSttsCd": "pbanc_stts_cd",
+            "pbancSttsCdNm": "pbanc_stts_cd_nm",
+            "prcmBsneSeCd": "prcm_bsne_se_cd",
+            "prcmBsneSeCdNm": "prcm_bsne_se_cd_nm",
+            "bidMthdCd": "bid_mthd_cd",
+            "bidMthdCdNm": "bid_mthd_cd_nm",
+            "stdCtrtMthdCd": "std_ctrt_mthd_cd",
+            "stdCtrtMthdCdNm": "std_ctrt_mthd_cd_nm",
+            "scsbdMthdCd": "scsbd_mthd_cd",
+            "scsbdMthdCdNm": "scsbd_mthd_cd_nm",
+            "pbancInstUntyGrpNo": "pbanc_inst_unty_grp_no",
+            "pbancInstUntyGrpNoNm": "pbanc_inst_unty_grp_no_nm",
+            "grpNm": "grp_nm",
+            "bidBlffId": "bid_blff_id",
+            "bidBlffIdNm": "bid_blff_id_nm",
+            "ibxOnbsPrnmntDt": "ibx_onbs_prnmnt_dt",
+            "ibxOnbsDt": "ibx_onbs_dt",
+            "edocNo": "edoc_no",
+            "usrDocNoVal": "usr_doc_no_val",
+        }
+        mapped: dict[str, Any] = {}
+        for key, value in raw.items():
+            target = mapping.get(key)
+            if target:
+                mapped[target] = value
+        return mapped
+
+    def _map_opening_result(self, raw: dict[str, Any]) -> dict[str, Any]:  # 개찰 결과 매핑.
+        mapping = {
+            "bidPbancNo": "bid_pbanc_no",
+            "bidPbancOrd": "bid_pbanc_ord",
+            "bidClsfNo": "bid_clsf_no",
+            "bidPrgrsOrd": "bid_prgrs_ord",
+            "ibxOnbsRnkg": "ibx_onbs_rnkg",
+            "ibxGrpNm": "ibx_grp_nm",
+            "ibxBdngAmt": "ibx_bdng_amt",
+            "ibxSlprRcptnDt": "ibx_slpr_rcptn_dt",
+            "ibxBzmnRegNo": "ibx_bzmn_reg_no",
+            "ibxRprsvNm": "ibx_rprsv_nm",
+            "bidrPrsnNo": "bidr_prsn_no",
+            "bidrPrsnNm": "bidr_prsn_nm",
+            "bidUfnsRsnCd": "bid_ufns_rsn_cd",
+            "bidUfnsRsnNm": "bid_ufns_rsn_nm",
+            "ufnsYn": "ufns_yn",
+            "ibxEvlScrPrpl": "ibx_evl_scr_prpl",
+            "ibxEvlScrPrce": "ibx_evl_scr_prce",
+            "ibxEvlScrOvrl": "ibx_evl_scr_ovrl",
+            "sfbrSlctnOrd": "sfbr_slctn_ord",
+            "sfbrSlctnRsltCd": "sfbr_slctn_rslt_cd",
+        }
+        mapped: dict[str, Any] = {}
+        for key, value in raw.items():
+            target = mapping.get(key)
+            if target:
+                mapped[target] = value
+        return mapped
+
     def _open_detail_and_fetch(self, page: Any, index: int) -> dict[str, Any]:  # 상세 팝업 열기.
-        link = page.locator(self._config.selectors.list_link).nth(index)  # 해당 행 링크.
-        with page.expect_response(  # 상세 API 응답 대기.
-            lambda response: response.url == self._config.detail_api_url
-            and response.request.method == "POST"
-        ) as response_info:
-            link.click()  # 상세 클릭.
-        page.wait_for_selector(self._config.selectors.detail_popup)  # 팝업 로드 대기.
-        payload = response_info.value.json()  # 응답 JSON 파싱.
-        return self._parser.parse_detail(payload)  # 상세 원본 맵 반환.
+        @retry(
+            stop=stop_after_attempt(self._config.retry_count),
+            wait=wait_fixed(self._config.retry_backoff_sec),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call() -> dict[str, Any]:
+            link = page.locator(self._config.selectors.list_link).nth(index)  # 해당 행 링크.
+            with page.expect_response(  # 상세 API 응답 대기.
+                lambda response: response.url == self._config.detail_api_url
+                and response.request.method == "POST"
+            ) as response_info:
+                link.click()  # 상세 클릭.
+            page.wait_for_selector(self._config.selectors.detail_popup)  # 팝업 로드 대기.
+            payload = response_info.value.json()  # 응답 JSON 파싱.
+            return self._parser.parse_detail(payload)  # 상세 원본 맵 반환.
+
+        try:
+            return _call()
+        except Exception as exc:
+            self._logger.warning("detail_fetch_skip err=%s index=%s", exc, index)
+            return {}
 
     def _close_detail(self, page: Any) -> None:  # 상세 팝업 닫기.
         close_btn = page.locator(self._config.selectors.detail_close).first  # 닫기 버튼.
