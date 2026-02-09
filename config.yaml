@@ -17,7 +17,7 @@ crawl:
   search_range_days: 1825
   # snapshot_enabled: 원본 JSON 스냅샷 저장 옵션(기본 OFF).
   # - 미확정 항목이 포함된 응답만 선택 저장한다.
-  snapshot_enabled: true
+  snapshot_enabled: false
   # snapshot_dir: 스냅샷 저장 경로.
   snapshot_dir: "data/raw"
   # snapshot_mode: 스냅샷 저장 모드.
@@ -25,7 +25,7 @@ crawl:
   # - all: 모든 응답 저장
   snapshot_mode: "all"
   # snapshot_only_list: 목록 원본만 저장하고 상세 수집은 생략.
-  snapshot_only_list: true
+  snapshot_only_list: false
   # list_filter_pbanc_knd_cd: 공고종류 필터(후처리).
   # - 예: 공440002(실공고) / 공440001(모의공고)
   list_filter_pbanc_knd_cd:

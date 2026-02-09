@@ -592,6 +592,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             "bidClsfNo": "bid_clsf_no",
             "bidPrgrsOrd": "bid_prgrs_ord",
             "bidPbancPgstCd": "bid_pbanc_pgst_cd",
+            "bidPbancPgstCdNm": "bid_pbanc_pgst_cd_nm",
             "sfbrSlctnOrd": "sfbr_slctn_ord",
             "sfbrSlctnRsltCd": "sfbr_slctn_rslt_cd",
             "docSbmsnDdlnDt": "doc_sbmsn_ddln_dt",

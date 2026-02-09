@@ -352,6 +352,7 @@
 - `bid_clsf_no` (str|null): 분류 번호
 - `bid_prgrs_ord` (str|null): 진행 차수
 - `bid_pbanc_pgst_cd` (str|null): 공고게시 코드
+- `bid_pbanc_pgst_cd_nm` (str|null): 공고게시 코드명
 - `sfbr_slctn_ord` (str|null): 낙찰자선정 차수
 - `sfbr_slctn_rslt_cd` (str|null): 낙찰자선정 결과 코드
 - `doc_sbmsn_ddln_dt` (datetime|null): 문서제출 마감일시

@@ -28,7 +28,7 @@ replay_pid*
 
 __pycache__/
 *.pyc
-
+data/*
 data/*.csv
 data/*.json
 data/backup/

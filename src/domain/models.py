@@ -4,6 +4,7 @@ from __future__ import annotations  # 타입 힌트에서 전방 참조를 허�
 
 from datetime import datetime  # 날짜/시간 정규화에 사용.
 from typing import Optional  # 선택적 필드 타입 표현.
+import html  # HTML 엔티티 디코딩.
 
 from pydantic import BaseModel, Field  # 모든 도메인 모델의 기반 클래스와 제약 선언.
 
@@ -27,7 +28,15 @@ def _strip_or_none(value: Optional[str]) -> Optional[str]:  # 공백 제거 후 
 def _normalize_doc_no(value: Optional[str]) -> Optional[str]:  # 문서번호 공백 제거.
     if value is None:  # 값이 없으면 None 유지.
         return None  # None 반환.
-    return "".join(value.split())  # 모든 공백을 제거한다.
+    unescaped = _unescape_html(value) or ""
+    return "".join(unescaped.split()) or None  # 모든 공백 제거 후 빈 값은 None.
+
+
+def _unescape_html(value: Optional[str]) -> Optional[str]:  # HTML 엔티티 디코딩.
+    stripped = _strip_or_none(value)
+    if stripped is None:
+        return None
+    return html.unescape(stripped)
 
 
 def _normalize_biz_reg_no(value: Optional[str]) -> Optional[str]:  # 사업자등록번호 하이픈 제거.
@@ -41,11 +50,15 @@ def _parse_bool_yn(value: Optional[str]) -> Optional[bool]:  # Y/N 플래그를 
         return None  # None 반환.
     if isinstance(value, bool):  # 이미 bool이면 그대로 사용.
         return value  # 그대로 반환.
-    normalized = value.strip().upper()  # 공백 제거 후 대문자화.
+    normalized = str(value).strip().upper()  # 공백 제거 후 대문자화.
     if normalized == "Y":  # Y는 True.
         return True  # True 반환.
     if normalized == "N":  # N은 False.
         return False  # False 반환.
+    if normalized in ("TRUE", "T", "1"):  # True 계열 문자열.
+        return True
+    if normalized in ("FALSE", "F", "0"):  # False 계열 문자열.
+        return False
     return None  # 그 외 값은 None 처리.
 
 
@@ -84,6 +97,8 @@ def _parse_datetime(value: Optional[str]) -> Optional[datetime]:  # 날짜/시�
         "%Y/%m/%d %H:%M",  # 분까지만.
         "%Y-%m-%d %H:%M:%S",  # 하이픈 구분, 초 포함.
         "%Y-%m-%d %H:%M",  # 하이픈 구분, 분까지만.
+        "%Y%m%d%H%M%S",  # 구분자 없는 일시(초 포함).
+        "%Y%m%d%H%M",  # 구분자 없는 일시(분까지만).
         "%Y/%m/%d",  # 날짜만(슬래시).
         "%Y-%m-%d",  # 날짜만(하이픈).
         "%Y%m%d",  # 날짜만(숫자 8자리).
@@ -149,6 +164,7 @@ class BidNoticeListItem(BidNoticeKey):  # 목록 공고 모델.
     bid_clsf_no: Optional[str] = None  # 분류 번호(목록에 포함되는 경우).
     bid_prgrs_ord: Optional[str] = None  # 진행 차수(목록에 포함되는 경우).
     bid_pbanc_pgst_cd: Optional[str] = None  # 공고게시 코드.
+    bid_pbanc_pgst_cd_nm: Optional[str] = None  # 공고게시 코드명.
     sfbr_slctn_ord: Optional[str] = None  # 낙찰자선정 차수.
     sfbr_slctn_rslt_cd: Optional[str] = None  # 낙찰자선정 결과 코드.
     doc_sbmsn_ddln_dt: Optional[datetime] = None  # 문서제출 마감일시.
@@ -184,6 +200,23 @@ class BidNoticeListItem(BidNoticeKey):  # 목록 공고 모델.
     @_before_validator("edoc_no", "usr_doc_no_val")  # 문서번호 정규화.
     def _normalize_list_doc_no(cls, value: Optional[str]) -> Optional[str]:  # 목록 문서번호 정리.
         return _normalize_doc_no(_strip_or_none(value))  # 공백 제거 후 정규화.
+
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "bid_pbanc_nm",
+        "bid_pbanc_num",
+        "pbanc_stts_cd_nm",
+        "prcm_bsne_se_cd_nm",
+        "bid_mthd_cd_nm",
+        "std_ctrt_mthd_cd_nm",
+        "scsbd_mthd_cd_nm",
+        "pbanc_knd_cd_nm",
+        "pbanc_stts_grid_cd_nm",
+        "grp_nm",
+        "bid_pbanc_pgst_cd_nm",
+        "bdng_amt_yn_nm",
+    )
+    def _unescape_list_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
 
 
 class BidNoticeDetail(BidNoticeKey):  # 상세 공고 모델.
@@ -256,6 +289,26 @@ class BidNoticeDetail(BidNoticeKey):  # 상세 공고 모델.
     def _normalize_detail_doc_no(cls, value: Optional[str]) -> Optional[str]:  # 상세 문서번호 정리.
         return _normalize_doc_no(_strip_or_none(value))  # 공백 제거 후 정규화.
 
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "bid_pbanc_nm",
+        "bid_pbanc_num",
+        "pbanc_stts_cd_nm",
+        "prcm_bsne_se_cd_nm",
+        "bid_mthd_cd_nm",
+        "std_ctrt_mthd_cd_nm",
+        "scsbd_mthd_cd_nm",
+        "pbanc_inst_unty_grp_no_nm",
+        "grp_nm",
+        "pic_id_nm",
+        "bid_blff_id_nm",
+        "onbs_plac_nm",
+        "base_addr",
+        "dtl_addr",
+        "unty_addr",
+    )
+    def _unescape_detail_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
+
 
 class BidOpeningSummary(BidNoticeKey):  # 개찰결과 요약 모델.
     # 개찰결과 API의 요약 맵(pbancMap). 목록 결과와 분리 유지.
@@ -291,6 +344,21 @@ class BidOpeningSummary(BidNoticeKey):  # 개찰결과 요약 모델.
     @_before_validator("edoc_no", "usr_doc_no_val")  # 문서번호 정규화.
     def _normalize_summary_doc_no(cls, value: Optional[str]) -> Optional[str]:  # 요약 문서번호 정리.
         return _normalize_doc_no(_strip_or_none(value))  # 공백 제거 후 정규화.
+
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "bid_pbanc_nm",
+        "bid_pbanc_num",
+        "pbanc_stts_cd_nm",
+        "prcm_bsne_se_cd_nm",
+        "bid_mthd_cd_nm",
+        "std_ctrt_mthd_cd_nm",
+        "scsbd_mthd_cd_nm",
+        "pbanc_inst_unty_grp_no_nm",
+        "grp_nm",
+        "bid_blff_id_nm",
+    )
+    def _unescape_opening_summary_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
 
 
 class BidOpeningResult(BidNoticeKey):  # 개찰결과 목록 모델.
@@ -349,12 +417,21 @@ class BidOpeningResult(BidNoticeKey):  # 개찰결과 목록 모델.
     def _normalize_eval_scores_num(cls, value: Optional[str]) -> Optional[float]:  # 점수 숫자화.
         return _parse_float(value)
 
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "ibx_grp_nm",
+        "ibx_rprsv_nm",
+        "bidr_prsn_nm",
+        "bid_ufns_rsn_nm",
+    )
+    def _unescape_opening_result_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
+
 
 class AttachmentItem(BaseModel):  # 첨부 메타 모델.
     # 상세/공지 API의 unty_atch_file_no로 연결되는 첨부 메타.
     unty_atch_file_no: str  # 첨부파일 그룹 키.
     atch_file_sqno: int  # 첨부파일 순번.
-    bsne_clsf_cd: str  # 업무분류 코드.
+    bsne_clsf_cd: Optional[str] = None  # 업무분류 코드.
     # 파일 유형/저장소 상황에 따라 달라지는 선택 필드.
     atch_file_knd_cd: Optional[str] = None  # 첨부파일 종류 코드.
     atch_file_nm: str  # 저장 파일명.
@@ -386,6 +463,18 @@ class AttachmentItem(BaseModel):  # 첨부 메타 모델.
     def _parse_download_flag(cls, value: Optional[str]) -> Optional[bool]:  # 다운로드 플래그.
         return _parse_bool_yn(value)  # 공통 파서 사용.
 
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "atch_file_nm",
+        "orgnl_atch_file_nm",
+        "atch_file_dscr",
+        "atch_file_path_nm",
+        "tbl_nm",
+        "col_nm",
+        "atch_file_rmrk_cn",
+    )
+    def _unescape_attachment_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
+
 
 class NoceItem(BaseModel):  # 공지/변경 공고 상세 모델.
     pst_no: str  # 게시 번호.
@@ -404,6 +493,14 @@ class NoceItem(BaseModel):  # 공지/변경 공고 상세 모델.
     @_before_validator("inpt_dt")  # 등록일시 파싱.
     def _parse_inpt_dt(cls, value: Optional[str]) -> Optional[datetime]:  # 공지 일시 파싱.
         return _parse_datetime(value)  # 공통 파서 사용.
+
+    @_before_validator(  # 텍스트 HTML 엔티티 디코딩.
+        "pst_nm",
+        "odn3_col_cn",
+        "bulk_pst_cn",
+    )
+    def _unescape_noce_text(cls, value: Optional[str]) -> Optional[str]:
+        return _unescape_html(value)
 
 
 class CommCd(BaseModel):  # 코드 사전 모델.
