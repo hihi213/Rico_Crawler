@@ -4,7 +4,8 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, get_args, get_origin
+from types import NoneType
 
 
 def venv_python_candidate() -> Path:
@@ -25,6 +26,11 @@ except ModuleNotFoundError:  # pragma: no cover
         sys.exit(0)
     print("필수 패키지(pyyaml)가 없습니다. 먼저 `python install`을 실행하세요.")
     sys.exit(1)
+
+try:
+    from src.core.config import AppConfig
+except Exception:  # pragma: no cover - optional enhancement
+    AppConfig = None
 
 
 def usage(logger: logging.Logger) -> None:
@@ -50,7 +56,63 @@ def key_exists(data: dict[str, Any], key_path: str) -> bool:
     return True
 
 
-def set_config_value(config_path: Path, key_path: str, value: Any) -> None:
+def get_value(data: dict[str, Any], key_path: str) -> Any:
+    keys = key_path.split(".")
+    current: Any = data
+    for key in keys:
+        current = current[key]
+    return current
+
+
+def schema_type_for_key(key_path: str) -> Optional[type]:
+    if AppConfig is None:
+        return None
+    keys = key_path.split(".")
+    model: Any = AppConfig
+    for key in keys:
+        fields = getattr(model, "model_fields", {})
+        field = fields.get(key)
+        if field is None:
+            return None
+        annotation = field.annotation
+        origin = get_origin(annotation)
+        if origin in (list, dict):
+            return origin
+        if origin is not None:
+            args = get_args(annotation)
+            if NoneType in args:
+                inner = next((arg for arg in args if arg is not NoneType), None)
+                if isinstance(inner, type):
+                    return inner
+                inner_origin = get_origin(inner)
+                return inner_origin if isinstance(inner_origin, type) else None
+        if isinstance(annotation, type):
+            return annotation
+        model = field.annotation
+    return None
+
+
+def type_name(value_type: Optional[type]) -> str:
+    if value_type is None:
+        return "unknown"
+    return value_type.__name__
+
+
+def validate_type(expected: Optional[type], value: Any) -> bool:
+    if expected is None:
+        return True
+    if value is None:
+        return True
+    if expected in (dict, list, bool, int, float, str):
+        if expected is float and isinstance(value, int):
+            return True
+        if expected is int and isinstance(value, bool):
+            return False
+        return isinstance(value, expected)
+    return True
+
+
+def set_config_value(config_path: Path, key_path: str, value: Any) -> Any:
     with config_path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
@@ -60,10 +122,12 @@ def set_config_value(config_path: Path, key_path: str, value: Any) -> None:
         if key not in current or not isinstance(current[key], dict):
             current[key] = {}
         current = current[key]
+    before = current.get(keys[-1])
     current[keys[-1]] = value
 
     with config_path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+    return before
 
 
 def collect_keys(data: dict[str, Any], prefix: str = "") -> list[str]:
@@ -92,7 +156,9 @@ def main() -> None:
         with config_path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         for key in collect_keys(data):
-            logger.info(key)
+            current_value = get_value(data, key)
+            expected_type = schema_type_for_key(key)
+            logger.info("%s (%s) = %s", key, type_name(expected_type), current_value)
         return
 
     if len(argv) == 2:
@@ -104,8 +170,19 @@ def main() -> None:
             logger.info("가능한 키 목록은 `python set keys`로 확인하세요.")
             sys.exit(2)
         value = parse_value(raw_value)
-        set_config_value(config_path, key_path, value)
+        expected_type = schema_type_for_key(key_path)
+        if not validate_type(expected_type, value):
+            logger.error(
+                "타입 불일치: %s (기대=%s, 입력=%s)",
+                key_path,
+                type_name(expected_type),
+                type(value).__name__,
+            )
+            sys.exit(2)
+        before = set_config_value(config_path, key_path, value)
         logger.info("config.yaml 업데이트 완료: %s", key_path)
+        logger.info("변경 전: %s", before)
+        logger.info("변경 후: %s", value)
         return
 
     usage(logger)

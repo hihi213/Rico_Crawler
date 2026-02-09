@@ -29,12 +29,12 @@ class NoticeRepository:
         self._logger = logging.getLogger("repository")
         self._data_dir = Path(sqlite_path).parent
         self._data_dir.mkdir(parents=True, exist_ok=True)
-        self._list_path = self._data_dir / "bid_notice_list.csv"
-        self._detail_path = self._data_dir / "bid_notice_detail.csv"
-        self._noce_path = self._data_dir / "bid_notice_noce.csv"
-        self._attachment_path = self._data_dir / "bid_notice_attachment.csv"
-        self._opening_summary_path = self._data_dir / "bid_opening_summary.csv"
-        self._opening_result_path = self._data_dir / "bid_opening_result.csv"
+        self._list_path = self._data_dir / "list.csv"
+        self._detail_path = self._data_dir / "detail.csv"
+        self._noce_path = self._data_dir / "notice.csv"
+        self._attachment_path = self._data_dir / "attachments.csv"
+        self._opening_summary_path = self._data_dir / "opening_summary.csv"
+        self._opening_result_path = self._data_dir / "opening_result.csv"
         self._list_seen = self._load_seen(self._list_path, _LIST_UNIQUE_KEYS)
         self._detail_seen = self._load_seen(self._detail_path, _DETAIL_UNIQUE_KEYS)
         self._noce_seen = self._load_seen(self._noce_path, _NOCE_UNIQUE_KEYS)

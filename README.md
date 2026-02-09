@@ -29,26 +29,18 @@ data/                # CSV 결과/체크포인트/스냅샷
 docs/                # 결정 기록/트러블슈팅/스키마
 ```
 
-## 재현 절차
-공통 3줄
-```
-python install
-python run
-결과 확인: data/*.csv
-```
+## 진행 절차
+1. 설치
+2. 실행
+3. 결과 확인
+
 권장 Python 버전: `3.11.14`
 
-자동화 명령 요약
-| 목적 | 명령 | 설명 |
-| --- | --- | --- |
-| 설치 | `python install` | venv 생성 + 의존성 + Playwright 설치 |
-| 기본 실행 | `python run` | 2페이지 기본 수집 |
-| 페이지 수 지정 | `python run page <N>` | N페이지 수집 |
-| 필터 프리셋 | `python run filter` | 빠른 검증용 필터 조합 |
-| 주기 실행 | `python run interval <SEC> [N]` | `<SEC>`초마다 반복, 선택적 페이지 수 |
-| 체크포인트 초기화 | `python run reset` | 체크포인트 초기화 후 실행 |
-| 설정 변경 | `python set <KEY> <VALUE>` | `config.yaml` 값 변경 |
-| 설정 키 확인 | `python set keys` | 변경 가능한 키 목록 출력 |
+## 1. 설치
+빠른 시작
+```
+python install
+```
 
 수동 설치가 필요할 때 (운영체제 공통)
 ```
@@ -69,30 +61,39 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 - 모든 패키지 버전은 `requirements.txt`에서 고정 관리합니다.
 - 버전 변경 시 `requirements.txt`와 README의 실행 절차를 함께 업데이트합니다.
 
-## 실행
-간편 실행 (권장)
+## 2. 실행
+기본 실행
 ```
 python run
 ```
 
-페이지 수 지정
+자동화 명령
+| 목적 | 명령 | 설명 |
+| --- | --- | --- |
+| 기본 실행 | `python run` | 2페이지 기본 수집 |
+| 페이지 수 지정 | `python run pages <N>` | N페이지 수집 (생략 시 기본값 2페이지는 `python run` 사용) |
+| 필터 프리셋 | `python run preset` | 빠른 검증용 필터 조합 |
+| 주기 실행 | `python run schedule <SEC> [N]` | `<SEC>`초마다 반복, 선택적 페이지 수 |
+| 체크포인트 초기화 | `python run reset-checkpoint` | 체크포인트 초기화 후 실행 |
+| 고급 실행 | `python run -- <main.py 옵션>` | main.py 옵션 직접 전달 |
+| 설정 변경 | `python set <KEY> <VALUE>` | `config.yaml` 값 변경 |
+| 설정 키 확인 | `python set keys` | 변경 가능한 키/타입/현재값 출력 |
+
+실행 예시
 ```
-python run page 5
+python run
+python run pages 5
+python run preset
+python run schedule 3600 2
+python run reset-checkpoint
+python run -- --max-pages 3 --mode once
 ```
 
-필터 옵션 실행 (조건을 좁혀 빠르게 검증)
-```
-python run filter
-```
-
-주기 실행 모드
-```
-python run interval 3600 2
-```
-
-실행 파라미터 간단 설명
-- `page <N>`: 목록 페이지 수를 제한합니다(1페이지=100건 기준)
-- `interval <SEC> [N]`: `<SEC>`초마다 반복 실행하며, `[N]`으로 페이지 수를 선택 지정합니다
+옵션/파라미터 정리
+- `pages <N>`: 목록 페이지 수를 제한합니다(1페이지=100건 기준)
+- `schedule <SEC> [N]`: `<SEC>`초마다 반복 실행하며, `[N]`으로 페이지 수를 선택 지정합니다
+- `-- <main.py 옵션>`: `main.py`의 CLI 옵션을 그대로 전달합니다
+- `python set <KEY> <VALUE>`: `config.yaml` 값을 변경합니다
 
 ## 설정(config.yaml)
 주요 설정은 `config.yaml`에 있습니다. 실행 전에 바꾸지 않아도 됩니다.
@@ -105,6 +106,7 @@ python set crawl.snapshot_enabled true
 ```
 python set keys
 ```
+- `set`은 타입 검증 후 변경하며, 변경 전/후 값을 함께 출력합니다.
 - `search_range_days`: 최근 N일 범위 자동 계산
 - `max_pages`: 페이지 제한
 - `snapshot_enabled`: 원본 JSON 저장 여부
@@ -114,18 +116,15 @@ python set keys
 필터는 기본적으로 비워두고 전체 수집을 권장합니다.  
 빠른 확인이 필요할 때만 CLI 옵션으로 필터를 좁혀 수집 범위를 제한하세요.
 
-## 결과 확인
-출력 경로/파일명 규칙: `data/*.csv`  
+## 3. 결과 확인
+CSV 저장 위치: `data/`  
 실행 후 아래 파일이 생성되면 정상 동작입니다.
-CSV는 `data/` 아래에 생성됩니다.
-- `data/bid_notice_list.csv`
-- `data/bid_notice_detail.csv`
-- `data/bid_notice_noce.csv`
-- `data/bid_notice_attachment.csv`
-- `data/bid_opening_summary.csv`
-- `data/bid_opening_result.csv`
-
-스키마 정의는 `docs/schema.md`에 있습니다.
+- `data/list.csv`: 입찰공고 목록
+- `data/detail.csv`: 입찰공고 상세
+- `data/notice.csv`: 공지/유의사항
+- `data/attachments.csv`: 첨부파일 메타데이터
+- `data/opening_summary.csv`: 개찰 요약
+- `data/opening_result.csv`: 개찰 결과 상세
 
 ## 정규화 규칙
 1. 날짜/시간: 다양한 포맷을 `datetime`으로 변환

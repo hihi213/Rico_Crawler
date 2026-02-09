@@ -189,6 +189,16 @@
 - 엔티티가 남으면 사용자 화면/리포트 품질이 떨어지므로 전 범위 정규화가 필요했다.
 - 일부 첨부 데이터가 `null`을 반환해 스킵이 발생하므로 품질 저하를 방지한다.
 
+## 2026-02-09: 자동화 명령 명칭 개선
+
+### 결정
+- `page` → `pages`, `filter` → `preset`, `interval` → `schedule`, `reset` → `reset-checkpoint`로 명칭을 정리한다.
+- 기존 명령은 하위 호환을 위해 alias로 유지한다.
+
+### 이유(실무 관점)
+- 명령 의도를 더 명확하게 표현해 문서/교육 비용을 줄인다.
+- 이미 배포된 문서/스크립트가 깨지지 않도록 점진적 전환을 지원한다.
+
 ## 미확정 항목 트래킹 표 운영
 
 ### 결정
@@ -379,7 +389,7 @@
 - 첨부 등록일이 `YYYY/MM/DD HH:mm:ss` 형식으로 내려와 파서 보완이 필요
 
 ### 진행 과정
-1) Repository에 `bid_notice_noce.csv`, `bid_notice_attachment.csv`, `bid_opening_summary.csv`, `bid_opening_result.csv` 추가
+1) Repository에 `notice.csv`, `attachments.csv`, `opening_summary.csv`, `opening_result.csv` 추가
 2) Service에서 수집된 공지/첨부/개찰 데이터를 저장으로 연결
 3) AttachmentItem `inpt_dt` 정규화 validator 추가
 

@@ -28,7 +28,7 @@
 
 ### 해결
 - 점수 필드를 문자열로 정규화하는 validator 추가
-- 2페이지 재수집 결과 `bid_opening_result.csv` 생성 확인
+- 2페이지 재수집 결과 `opening_result.csv` 생성 확인
 
 ## 2026-02-09: 페이지 크기 100건 확대 영향
 

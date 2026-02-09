@@ -499,7 +499,7 @@
 - 각 파일은 UTF-8, 헤더 포함, 컬럼 순서 고정
 
 ### 파일 목록 및 컬럼 순서
-- `bid_notice_list.csv`
+- `list.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`, `pbanc_stts_grid_cd_nm`
   - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
@@ -516,7 +516,7 @@
   - `sfbr_slctn_ord`, `sfbr_slctn_rslt_cd`
   - `doc_sbmsn_ddln_dt`, `cvln_qlem_crtr_no`, `cvln_qlem_pgst_cd`
   - `objtdmd_term_dt`, `bdng_amt_yn_nm`, `slpr_rcpt_ddln_dt1`
-- `bid_notice_detail.csv`
+- `detail.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
@@ -532,7 +532,7 @@
   - `edoc_no`, `usr_doc_no_val`
   - `rbid_prms_yn`, `pbanc_pstg_yn`, `rgn_lmt_yn`, `lcns_lmt_yn`, `pnpr_use_yn`, `pnpr_rls_yn`
   - `unty_atch_file_no`
-- `bid_opening_summary.csv`
+- `opening_summary.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
@@ -544,7 +544,7 @@
   - `bid_blff_id`, `bid_blff_id_nm`
   - `ibx_onbs_prnmnt_dt`, `ibx_onbs_dt`
   - `edoc_no`, `usr_doc_no_val`
-- `bid_opening_result.csv`
+- `opening_result.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `ibx_onbs_rnkg`, `ibx_grp_nm`
   - `ibx_bdng_amt`, `ibx_slpr_rcptn_dt`

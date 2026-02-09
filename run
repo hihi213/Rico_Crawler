@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -15,23 +16,33 @@ def venv_python_candidate() -> Path:
     return Path()
 
 
-def run_main(args: list[str]) -> None:
+def run_main(args: list[str], logger: logging.Logger) -> None:
     main_path = Path(__file__).resolve().parent / "main.py"
     cmd = [sys.executable, str(main_path), *args]
-    subprocess.run(cmd, check=True)
+    start = time.time()
+    logger.info("실행 시작: %s", " ".join(args) if args else "(기본값)")
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as exc:
+        logger.error("실행 실패 (exit=%s)", exc.returncode)
+        sys.exit(exc.returncode or 1)
+    elapsed = time.time() - start
+    logger.info("실행 완료 (%.2fs)", elapsed)
 
 
 def usage(logger: logging.Logger) -> None:
     logger.info("사용법:")
-    logger.info("  python run                       # 기본 2페이지 수집")
-    logger.info("  python run page <N>              # N페이지 수집")
-    logger.info("  python run filter                # 필터 프리셋 실행")
-    logger.info("  python run interval <SEC> [N]    # 주기 실행, 선택적 페이지 수")
-    logger.info("  python run reset                 # 체크포인트 초기화 후 실행")
+    logger.info("  python run                          # 기본 2페이지 수집")
+    logger.info("  python run pages <N>                # N페이지 수집")
+    logger.info("  python run preset                   # 필터 프리셋 실행")
+    logger.info("  python run schedule <SEC> [N]       # 주기 실행, 선택적 페이지 수")
+    logger.info("  python run reset-checkpoint         # 체크포인트 초기화 후 실행")
+    logger.info("  python run -- <main.py 옵션>        # main.py 옵션 직접 전달")
     logger.info("예시:")
-    logger.info("  python run page 5")
-    logger.info("  python run interval 3600 2")
-    logger.info("  python run filter")
+    logger.info("  python run pages 5")
+    logger.info("  python run schedule 3600 2")
+    logger.info("  python run preset")
+    logger.info("  python run -- --max-pages 3 --mode once")
 
 
 def main() -> None:
@@ -40,25 +51,25 @@ def main() -> None:
     argv = sys.argv[1:]
 
     if not argv:
-        run_main(["--max-pages", "2"])
+        run_main(["--max-pages", "2"], logger)
         return
 
-    if argv[0] == "page" and len(argv) == 2 and argv[1].isdigit():
-        run_main(["--max-pages", argv[1]])
+    if argv[0] in {"pages", "page"} and len(argv) == 2 and argv[1].isdigit():
+        run_main(["--max-pages", argv[1]], logger)
         return
 
-    if argv[0] == "interval" and len(argv) in (2, 3) and argv[1].isdigit():
+    if argv[0] in {"schedule", "interval"} and len(argv) in (2, 3) and argv[1].isdigit():
         args = ["--mode", "interval", "--interval-sec", argv[1]]
         if len(argv) == 3 and argv[2].isdigit():
             args.extend(["--max-pages", argv[2]])
-        run_main(args)
+        run_main(args, logger)
         return
 
-    if argv[0] == "reset" and len(argv) == 1:
-        run_main(["--reset-checkpoint"])
+    if argv[0] in {"reset-checkpoint", "reset"} and len(argv) == 1:
+        run_main(["--reset-checkpoint"], logger)
         return
 
-    if argv[0] == "filter" and len(argv) == 1:
+    if argv[0] in {"preset", "filter"} and len(argv) == 1:
         run_main(
             [
                 "--max-pages",
@@ -69,8 +80,15 @@ def main() -> None:
                 "공400001",
                 "--filter-bid-pgst-cd",
                 "입160003",
-            ]
+            ],
+            logger,
         )
+        return
+    if argv[0] == "--":
+        run_main(argv[1:], logger)
+        return
+    if argv[0].startswith("-"):
+        run_main(argv, logger)
         return
 
     usage(logger)
@@ -85,6 +103,8 @@ if __name__ == "__main__":
         if candidate and candidate != Path(sys.executable):
             subprocess.run([str(candidate), str(Path(__file__).resolve()), *sys.argv[1:]], check=False)
             sys.exit(0)
-        print("필수 패키지(pyyaml)가 없습니다. 먼저 `python install`을 실행하세요.")
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        logger = logging.getLogger("run")
+        logger.error("필수 패키지(pyyaml)가 없습니다. 먼저 `python install`을 실행하세요.")
         sys.exit(1)
     main()
