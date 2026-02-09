@@ -11,6 +11,10 @@ crawl:
   retry_count: 3
   retry_backoff_sec: 1.5
   user_agent: "RiCO-NuriCrawler/1.0"
+  # search_range_days: 동적 날짜 계산 옵션(없으면 고정 날짜 사용).
+  # - 예: 7이면 오늘 기준 최근 7일치로 pbancPstgStDt/pbancPstgEdDt 계산.
+  # - 지정하지 않으면 아래 고정 날짜를 그대로 사용한다.
+  search_range_days:
   list_api_headers:
     Accept: "application/json"
     Content-Type: "application/json;charset=UTF-8"

@@ -2,6 +2,7 @@ from __future__ import annotations  # 타입 힌트 전방 참조 허용.
 
 import json  # JSON 직렬화.
 import logging  # 로깅.
+from datetime import datetime, timedelta  # 날짜 처리 모듈.
 from typing import Any, Optional  # 범용 타입과 선택적 타입.
 
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
@@ -130,8 +131,7 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
             reraise=True,
         )
         def _call() -> list[dict[str, Any]]:
-            payload = dict(self._config.list_api_payload)  # 원본 보호.
-            payload["currentPage"] = current_page  # 페이지 갱신.
+            payload = self._build_list_payload(current_page)  # 유효성 검증 포함 페이로드 구성.
             resp = page.request.post(  # API 호출.
                 self._config.list_api_url,
                 data=json.dumps({"dlParamM": payload}),
@@ -150,6 +150,53 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
         except Exception as exc:
             self._logger.warning("list_api_skip err=%s page=%s", exc, current_page)
             return []
+
+    def _build_list_payload(self, current_page: int) -> dict[str, Any]:  # 목록 페이로드 구성.
+        payload = dict(self._config.list_api_payload)  # 원본 보호.
+        payload["currentPage"] = current_page  # 페이지 갱신.
+        search_range = self._config.search_range_days  # 동적 날짜 범위.
+        if search_range is not None:  # 동적 날짜 모드면.
+            if search_range <= 0:  # 유효성 검사.
+                raise ValueError("search_range_days must be positive")  # 잘못된 범위 차단.
+            self._apply_date_range(payload, search_range)  # 날짜 계산 적용.
+        else:  # 고정 날짜 모드면.
+            self._validate_payload_dates(payload)  # 날짜 형식 검증.
+        return payload  # 최종 페이로드 반환.
+
+    def _apply_date_range(self, payload: dict[str, Any], days: int) -> None:  # 날짜 범위 적용.
+        today = datetime.now().date()  # 기준 날짜(로컬).
+        start_date = today - timedelta(days=days - 1)  # 시작일 계산.
+        payload["pbancPstgStDt"] = start_date.strftime("%Y%m%d")  # 게시 시작일.
+        payload["pbancPstgEdDt"] = today.strftime("%Y%m%d")  # 게시 종료일.
+        if "onbsPrnmntStDt" in payload:  # 개찰 시작일 키가 있으면.
+            payload["onbsPrnmntStDt"] = start_date.strftime("%Y%m%d")  # 개찰 시작일.
+        if "onbsPrnmntEdDt" in payload:  # 개찰 종료일 키가 있으면.
+            payload["onbsPrnmntEdDt"] = today.strftime("%Y%m%d")  # 개찰 종료일.
+
+    def _validate_payload_dates(self, payload: dict[str, Any]) -> None:  # 날짜 유효성 검증.
+        parsed: dict[str, datetime] = {}  # 파싱된 날짜 보관.
+        for key in ("pbancPstgStDt", "pbancPstgEdDt", "onbsPrnmntStDt", "onbsPrnmntEdDt"):  # 날짜 키.
+            raw = payload.get(key)  # 원본 값.
+            if raw in (None, ""):  # 값이 없으면 스킵.
+                continue  # 다음 키로.
+            parsed[key] = self._parse_yyyymmdd(str(raw), key)  # 포맷 검증 및 저장.
+        self._validate_date_order(parsed, "pbancPstgStDt", "pbancPstgEdDt")  # 게시일 범위 확인.
+        self._validate_date_order(parsed, "onbsPrnmntStDt", "onbsPrnmntEdDt")  # 개찰일 범위 확인.
+
+    def _validate_yyyymmdd(self, value: str, field_name: str) -> None:  # 날짜 포맷 검증.
+        self._parse_yyyymmdd(value, field_name)  # 파싱 가능 여부만 확인.
+
+    def _parse_yyyymmdd(self, value: str, field_name: str) -> datetime:  # 날짜 파싱.
+        try:  # 파싱 시도.
+            return datetime.strptime(value, "%Y%m%d")  # YYYYMMDD 형식 확인.
+        except ValueError as exc:  # 잘못된 날짜 포맷.
+            raise ValueError(f"Invalid date for {field_name}: {value}") from exc  # 명확한 에러.
+
+    def _validate_date_order(self, parsed: dict[str, datetime], start_key: str, end_key: str) -> None:  # 순서 검증.
+        if start_key not in parsed or end_key not in parsed:  # 둘 중 하나라도 없으면.
+            return  # 검증 생략.
+        if parsed[start_key] > parsed[end_key]:  # 시작일이 종료일보다 늦으면.
+            raise ValueError(f"{start_key} must be <= {end_key}")  # 범위 오류.
 
     def _build_list_items(self, raw_rows: list[dict[str, Any]]) -> list[BidNoticeListItem]:  # 목록 모델 생성.
         items: list[BidNoticeListItem] = []  # 변환된 모델 리스트.

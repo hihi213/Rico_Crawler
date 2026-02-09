@@ -107,6 +107,7 @@
   - requirements.txt 최신화(버전 고정)
   - Windows 고려한 명령어/파이썬 버전 안내(README 반영)
 - Future Works: 병렬화, 알림, 모니터링, 성능 개선
+  - main.py의 time.sleep(args.interval_sec)이 비실무적이다라는 판단-> interval 모드의 운영 스케줄러 전환(cron/systemd 등) 고려
 
 ## 결정 보류/추후 반영(상세 메모)
 ### 3.0. 크롤링 조합 비교: Ferrari vs Tank

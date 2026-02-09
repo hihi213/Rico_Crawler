@@ -40,6 +40,7 @@ class CrawlConfig(BaseModel):  # 크롤링 설정 모델.
     retry_count: int  # 재시도 횟수.
     retry_backoff_sec: float  # 재시도 백오프.
     user_agent: str  # 사용자 에이전트.
+    search_range_days: Optional[int] = None  # 동적 날짜 계산 범위(일).
     list_api_headers: dict[str, str] = Field(default_factory=dict)  # 목록 API 헤더.
     list_api_payload: dict[str, Any] = Field(default_factory=dict)  # 목록 API payload.
     detail_api_headers: dict[str, str] = Field(default_factory=dict)  # 상세 API 헤더.
