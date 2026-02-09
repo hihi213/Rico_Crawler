@@ -66,6 +66,12 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 python main.py
 ```
+기본 실행은 필터 없이 전체 수집을 의미합니다.
+
+권장: 가상환경 Python을 명시적으로 사용하세요.
+```
+./venv/bin/python main.py
+```
 
 실행 예시
 ```
@@ -76,7 +82,7 @@ python main.py -f knd=실공고,stts=등록공고,pgst=입찰개시
 ```
 
 옵션/파라미터 정리
-- `-p, --pages <N>`: 목록 페이지 수 제한 (1페이지=100건 기준)
+- `-p, --pages <N>`: 목록 페이지 수 제한 (1페이지=20건 기준)
 - `-m, --mode <once|interval>`: 실행 모드
 - `-i, --interval <SEC>`: 주기 실행 대기 시간(초)
 - `-r, --reset`: 체크포인트 초기화
@@ -85,10 +91,16 @@ python main.py -f knd=실공고,stts=등록공고,pgst=입찰개시
 
 필터를 지정하면 해당 조건에 매칭되는 공고만 수집합니다. 필터를 비우면 전체 수집입니다.
 
+기본 설정
+- 기본 페이지 수: `crawl.max_pages=2`
+- 페이지당 건수: `recordCountPerPage=20`
+## 로그 정책
+- INFO: 페이지 저장 완료, 최종 요약
+- DEBUG: 파서/저장 상세 로그
+
 ## 설정(config.yaml)
 주요 설정은 `config.yaml`에 있습니다. 실행 전에 바꾸지 않아도 됩니다.
 설정 변경은 `config.yaml`을 직접 편집하세요.
-- `set`은 타입 검증 후 변경하며, 변경 전/후 값을 함께 출력합니다.
 - `search_range_days`: 최근 N일 범위 자동 계산
 - `max_pages`: 페이지 제한
 - `snapshot_enabled`: 원본 JSON 저장 여부
@@ -103,7 +115,7 @@ CSV 저장 위치: `data/` (코드+코드명 전체 컬럼)
 표시용 CSV: `data/view/` (`*_cd` 컬럼 제거, 코드명만 유지)  
 표시용 재생성: `python scripts/make_view.py`  
 표시용 기준: `list.csv`, `opening_result.csv`는 누리장터 화면에 보이는 주요 컬럼만 남깁니다.  
-샘플 결과: `sample/` (제출용 증빙. 실제 실행 결과는 `data/`에 생성됨)  
+샘플 결과: `sample/data/`, `sample/view/` (제출용 증빙. 실제 실행 결과는 `data/`에 생성됨)  
 실행 후 아래 파일이 생성되면 정상 동작입니다.
 - `data/list.csv`: 입찰공고 목록
 - `data/detail.csv`: 입찰공고 상세
@@ -179,6 +191,10 @@ pytest -q
 6. 표시용 뷰 정교화
 - 현황: `list.csv`, `opening_result.csv`는 화면 기준 컬럼만 유지하고, 나머지 뷰는 코드명을 유지하는 단순 뷰
 - 개선: 화면 기준 컬럼 정의를 전 뷰로 확장해 표시용 가독성을 강화
+
+7. 검색 조건별 결과 분리
+- 현황: 기본은 누적 저장 구조
+- 개선: 검색 조건(필터/기간)별로 파일을 분리 저장하는 옵션 제공
 
 ## 보안 참고 (Mend 경고)
 Mend.io 기준 `pytest==9.0.2` 관련 CVE-2025-71176 경고가 보고될 수 있습니다.  

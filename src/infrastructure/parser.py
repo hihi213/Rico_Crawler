@@ -30,7 +30,7 @@ class NoticeParser:
                 cell_map[col_id] = text
             if cell_map:
                 items.append(cell_map)
-        self._logger.info("목록 파싱 완료 행=%s", len(items))
+        self._logger.debug("목록 파싱 완료 행=%s", len(items))
         return items
 
     def parse_detail(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -39,7 +39,7 @@ class NoticeParser:
         if not isinstance(detail, dict):
             self._logger.warning("상세 응답 포맷 오류")
             return {}
-        self._logger.info("상세 파싱 완료 키=%s", len(detail))
+        self._logger.debug("상세 파싱 완료 키=%s", len(detail))
         return detail
 
     def parse_noce(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -48,7 +48,7 @@ class NoticeParser:
         if not isinstance(items, list):
             self._logger.warning("공지 응답 포맷 오류")
             return []
-        self._logger.info("공지 파싱 완료 행=%s", len(items))
+        self._logger.debug("공지 파싱 완료 행=%s", len(items))
         return items
 
     def parse_opening(self, payload: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -59,7 +59,7 @@ class NoticeParser:
             summary = {}
         if not isinstance(rows, list):
             rows = []
-        self._logger.info("개찰 파싱 완료 요약키=%s 행=%s", len(summary), len(rows))
+        self._logger.debug("개찰 파싱 완료 요약키=%s 행=%s", len(summary), len(rows))
         return summary, rows
 
     def parse_attachments(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -67,5 +67,5 @@ class NoticeParser:
         if not isinstance(result, list):
             self._logger.warning("첨부 응답 포맷 오류")
             return []
-        self._logger.info("첨부 파싱 완료 행=%s", len(result))
+        self._logger.debug("첨부 파싱 완료 행=%s", len(result))
         return result

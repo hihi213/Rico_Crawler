@@ -6,7 +6,7 @@ crawl:
   noce_api_url: "https://nuri.g2b.go.kr/nn/nnb/nnbb/selectBidNoceDetl.do"
   attachment_api_url: "https://nuri.g2b.go.kr/fs/fsc/fscb/UntyAtchFile/selectUntyAtchFileList.do"
   opening_api_url: "https://nuri.g2b.go.kr/nn/nnb/nnbd/selectOobsRsltDetl.do"
-  max_pages: 30
+  max_pages: 2
   timeout_ms: 15000
   retry_count: 3
   retry_backoff_sec: 1.5
@@ -38,7 +38,7 @@ crawl:
     pbancPstgEdDt: "20260209"
     onbsPrnmntStDt: "20260209"
     onbsPrnmntEdDt: "20260311"
-    recordCountPerPage: "100"
+    recordCountPerPage: "20"
     rowNum: ""
     kbrdrId: ""
     pbancInstUntyGrpNo: ""

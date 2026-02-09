@@ -45,9 +45,30 @@ class CrawlerService:
         saved = self._checkpoint.load()
         if saved is not None:
             start_page = max(1, saved.current_page)
+        if start_page > target_pages:
+            self._logger.warning(
+                "체크포인트 페이지(%s)가 최대 페이지(%s)를 초과했습니다. 체크포인트를 초기화합니다.",
+                start_page,
+                target_pages,
+            )
+            self._checkpoint.clear()
+            start_page = 1
         self._logger.info("수집 시작 페이지=%s", target_pages)
         if self._config.list_api_url:
+            total_items = 0
+            total_detail = 0
+            total_noce = 0
+            total_attachments = 0
+            total_opening_summaries = 0
+            total_opening_results = 0
+            total_saved_list = 0
+            total_saved_detail = 0
+            total_saved_noce = 0
+            total_saved_attachments = 0
+            total_saved_opening_summaries = 0
+            total_saved_opening_results = 0
             for page_index in range(start_page, target_pages + 1):
+                self._checkpoint.save(CrawlCheckpoint(current_page=page_index))
                 raw_rows = self._fetch_list_via_api(page, page_index)
                 if self._config.snapshot_only_list:
                     self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))
@@ -78,20 +99,18 @@ class CrawlerService:
                     if opening_summary is not None:
                         opening_summaries.append(opening_summary)
                     opening_results.extend(opening_rows)
-                if items:  # 저장할 항목이 있으면.
-                    self._repo.save_list_items(items)  # 목록 저장.
-                if detail_items:  # 상세 항목이 있으면.
-                    self._repo.save_detail_items(detail_items)  # 상세 저장.
-                if noce_items:  # 공지 저장.
-                    self._repo.save_noce_items(noce_items)
-                if attachments:  # 첨부 저장.
-                    self._repo.save_attachment_items(attachments)
-                if opening_summaries:  # 개찰 요약 저장.
-                    self._repo.save_opening_summary_items(opening_summaries)
-                if opening_results:  # 개찰 결과 저장.
-                    self._repo.save_opening_result_items(opening_results)
+                saved_list = self._repo.save_list_items(items) if items else 0
+                saved_detail = self._repo.save_detail_items(detail_items) if detail_items else 0
+                saved_noce = self._repo.save_noce_items(noce_items) if noce_items else 0
+                saved_attachments = self._repo.save_attachment_items(attachments) if attachments else 0
+                saved_opening_summaries = (
+                    self._repo.save_opening_summary_items(opening_summaries) if opening_summaries else 0
+                )
+                saved_opening_results = (
+                    self._repo.save_opening_result_items(opening_results) if opening_results else 0
+                )
                 self._logger.info(
-                    "페이지 저장 완료 페이지=%s 목록=%s 상세=%s 공지=%s 첨부=%s 개찰요약=%s 개찰결과=%s",
+                    "페이지=%s 수집(목록/상세/공지/첨부/요약/결과)=%s/%s/%s/%s/%s/%s 저장=%s/%s/%s/%s/%s/%s",
                     page_index,
                     len(items),
                     len(detail_items),
@@ -99,8 +118,36 @@ class CrawlerService:
                     len(attachments),
                     len(opening_summaries),
                     len(opening_results),
+                    saved_list,
+                    saved_detail,
+                    saved_noce,
+                    saved_attachments,
+                    saved_opening_summaries,
+                    saved_opening_results,
                 )
-                self._logger.info(
+                self._logger.debug(
+                    "페이지 저장 반영 페이지=%s 목록=%s 상세=%s 공지=%s 첨부=%s 개찰요약=%s 개찰결과=%s",
+                    page_index,
+                    saved_list,
+                    saved_detail,
+                    saved_noce,
+                    saved_attachments,
+                    saved_opening_summaries,
+                    saved_opening_results,
+                )
+                if (
+                    page_index == start_page
+                    and not items
+                    and not detail_items
+                    and not noce_items
+                    and not attachments
+                    and not opening_summaries
+                    and not opening_results
+                ):
+                    self._logger.warning(
+                        "수집 결과가 없습니다. 필터/날짜 범위/체크포인트를 확인하세요."
+                    )
+                self._logger.debug(
                     "페이지 건너뜀 페이지=%s 목록=%s 공지=%s 첨부=%s 개찰요약=%s 개찰결과=%s",
                     page_index,
                     list_skipped,
@@ -109,8 +156,36 @@ class CrawlerService:
                     opening_summary_skipped,
                     opening_row_skipped,
                 )
+                total_items += len(items)
+                total_detail += len(detail_items)
+                total_noce += len(noce_items)
+                total_attachments += len(attachments)
+                total_opening_summaries += len(opening_summaries)
+                total_opening_results += len(opening_results)
+                total_saved_list += saved_list
+                total_saved_detail += saved_detail
+                total_saved_noce += saved_noce
+                total_saved_attachments += saved_attachments
+                total_saved_opening_summaries += saved_opening_summaries
+                total_saved_opening_results += saved_opening_results
                 self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
             self._logger.info("수집 완료")  # 종료 로그.
+            self._logger.info(
+                "최종 요약 페이지=%s 수집(목록/상세/공지/첨부/개찰요약/개찰결과)=%s/%s/%s/%s/%s/%s 저장=%s/%s/%s/%s/%s/%s",
+                target_pages,
+                total_items,
+                total_detail,
+                total_noce,
+                total_attachments,
+                total_opening_summaries,
+                total_opening_results,
+                total_saved_list,
+                total_saved_detail,
+                total_saved_noce,
+                total_saved_attachments,
+                total_saved_opening_summaries,
+                total_saved_opening_results,
+            )
             return  # API 경로는 여기서 종료.
         page.goto(self._config.list_url, wait_until="networkidle")  # 목록 페이지 이동.
         if self._config.selectors.search_button:  # 검색 버튼이 설정된 경우.
@@ -166,14 +241,14 @@ class CrawlerService:
             reraise=True,
         )
         def _call() -> list[dict[str, Any]]:
-            self._logger.info("목록 API 호출 시작 페이지=%s", current_page)  # 호출 시작 로그.
+            self._logger.debug("목록 API 호출 시작 페이지=%s", current_page)  # 호출 시작 로그.
             payload = self._build_list_payload(current_page)  # 유효성 검증 포함 페이로드 구성.
             resp = page.request.post(  # API 호출.
                 self._config.list_api_url,
                 data=json.dumps({"dlParamM": payload}),
                 headers=self._config.list_api_headers,
             )
-            self._logger.info("목록 API 응답 페이지=%s 상태=%s", current_page, resp.status)  # 응답 상태 로그.
+            self._logger.debug("목록 API 응답 페이지=%s 상태=%s", current_page, resp.status)  # 응답 상태 로그.
             body = resp.json()  # JSON 파싱.
             self._maybe_snapshot_list(current_page, body)  # 원본 스냅샷 저장.
             if body.get("ErrorCode") != 0:  # 오류 처리.

@@ -123,20 +123,23 @@ def main() -> None:  # 메인 진입점.
 
     with BrowserController(config.crawl) as browser:  # 브라우저 컨텍스트 시작.
         page = browser.new_page()  # 새 페이지 생성.
-        if args.mode == "once":  # 단발 실행.
-            if args.reset:
-                checkpoint.clear()
-                logger.info("체크포인트 초기화")
-            service.run(page, args.pages)  # 크롤링 실행.
-        else:  # interval 실행.
-            while True:  # 반복 실행.
-                logger.info("주기 실행 시작")  # 시작 로그.
+        try:
+            if args.mode == "once":  # 단발 실행.
                 if args.reset:
                     checkpoint.clear()
                     logger.info("체크포인트 초기화")
                 service.run(page, args.pages)  # 크롤링 실행.
-                logger.info("주기 대기=%s초", args.interval)  # 대기 로그.
-                time.sleep(args.interval)  # 설정된 시간만큼 대기.
+            else:  # interval 실행.
+                while True:  # 반복 실행.
+                    logger.info("주기 실행 시작")  # 시작 로그.
+                    if args.reset:
+                        checkpoint.clear()
+                        logger.info("체크포인트 초기화")
+                    service.run(page, args.pages)  # 크롤링 실행.
+                    logger.info("주기 대기=%s초", args.interval)  # 대기 로그.
+                    time.sleep(args.interval)  # 설정된 시간만큼 대기.
+        except KeyboardInterrupt:
+            logger.info("사용자 중단(Ctrl+C)으로 종료합니다.")
 
 
 if __name__ == "__main__":  # 스크립트 직접 실행 시.

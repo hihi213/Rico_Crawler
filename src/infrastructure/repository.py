@@ -46,39 +46,39 @@ class NoticeRepository:
             self._opening_result_path, _OPENING_RESULT_UNIQUE_KEYS
         )
 
-    def save_list_items(self, items: Iterable[BidNoticeListItem]) -> None:
+    def save_list_items(self, items: Iterable[BidNoticeListItem]) -> int:
         rows = self._dedupe_rows([item.model_dump() for item in items], _LIST_UNIQUE_KEYS, self._list_seen)
-        self._write_csv(self._list_path, rows, BidNoticeListItem)
+        return self._write_csv(self._list_path, rows, BidNoticeListItem)
 
-    def save_detail_items(self, items: Iterable[BidNoticeDetail]) -> None:
+    def save_detail_items(self, items: Iterable[BidNoticeDetail]) -> int:
         rows = self._dedupe_rows([item.model_dump() for item in items], _DETAIL_UNIQUE_KEYS, self._detail_seen)
-        self._write_csv(self._detail_path, rows, BidNoticeDetail)
+        return self._write_csv(self._detail_path, rows, BidNoticeDetail)
 
-    def save_noce_items(self, items: Iterable[NoceItem]) -> None:
+    def save_noce_items(self, items: Iterable[NoceItem]) -> int:
         rows = self._dedupe_rows([item.model_dump() for item in items], _NOCE_UNIQUE_KEYS, self._noce_seen)
-        self._write_csv(self._noce_path, rows, NoceItem)
+        return self._write_csv(self._noce_path, rows, NoceItem)
 
-    def save_attachment_items(self, items: Iterable[AttachmentItem]) -> None:
+    def save_attachment_items(self, items: Iterable[AttachmentItem]) -> int:
         rows = self._dedupe_rows(
             [item.model_dump() for item in items], _ATTACH_UNIQUE_KEYS, self._attachment_seen
         )
-        self._write_csv(self._attachment_path, rows, AttachmentItem)
+        return self._write_csv(self._attachment_path, rows, AttachmentItem)
 
-    def save_opening_summary_items(self, items: Iterable[BidOpeningSummary]) -> None:
+    def save_opening_summary_items(self, items: Iterable[BidOpeningSummary]) -> int:
         rows = self._dedupe_rows(
             [item.model_dump() for item in items], _OPENING_SUMMARY_UNIQUE_KEYS, self._opening_summary_seen
         )
-        self._write_csv(self._opening_summary_path, rows, BidOpeningSummary)
+        return self._write_csv(self._opening_summary_path, rows, BidOpeningSummary)
 
-    def save_opening_result_items(self, items: Iterable[BidOpeningResult]) -> None:
+    def save_opening_result_items(self, items: Iterable[BidOpeningResult]) -> int:
         rows = self._dedupe_rows(
             [item.model_dump() for item in items], _OPENING_RESULT_UNIQUE_KEYS, self._opening_result_seen
         )
-        self._write_csv(self._opening_result_path, rows, BidOpeningResult)
+        return self._write_csv(self._opening_result_path, rows, BidOpeningResult)
 
-    def _write_csv(self, path: Path, rows: list[dict[str, Any]], model_type: type) -> None:
+    def _write_csv(self, path: Path, rows: list[dict[str, Any]], model_type: type) -> int:
         if not rows:
-            return
+            return 0
         fieldnames = list(model_type.model_fields.keys())
         file_exists = path.exists()
         with path.open("a", newline="", encoding="utf-8") as fp:
@@ -87,8 +87,9 @@ class NoticeRepository:
                 writer.writeheader()
             for row in rows:
                 writer.writerow({key: row.get(key) for key in fieldnames})
-        self._logger.info("CSV 저장 완료 경로=%s 행=%s", path, len(rows))
+        self._logger.debug("CSV 저장 완료 경로=%s 행=%s", path, len(rows))
         self._write_view_csv(path, rows, fieldnames)
+        return len(rows)
 
     def _write_view_csv(
         self,
@@ -107,7 +108,7 @@ class NoticeRepository:
                 writer.writeheader()
             for row in rows:
                 writer.writerow({key: row.get(key) for key in view_fieldnames})
-        self._logger.info("VIEW CSV 저장 완료 경로=%s 행=%s", view_path, len(rows))
+        self._logger.debug("VIEW CSV 저장 완료 경로=%s 행=%s", view_path, len(rows))
 
     def _load_seen(self, path: Path, keys: tuple[str, ...]) -> set[tuple[str, ...]]:
         if not path.exists():
