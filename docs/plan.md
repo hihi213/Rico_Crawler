@@ -32,37 +32,49 @@
 - [x] Playwright 설치 및 브라우저 준비
     - `playwright install`
 - [x] 프로젝트 구조 잡기
-    - `src/domain`, `src/scraper`, `src/repository`, `src/service`, `src/utils`
+    - `src/domain`, `src/infrastructure`, `src/service`, `src/core`
 - [x] 간단한 로깅 설정 (structlog 또는 logging 한쪽 선택)
     
 
 ## 3단계: 크롤링 루프 MVP (Day 2)
 
-- 목록 페이지 → 상세 페이지 진입 코드
-- HTML/API 응답 가져와서 핵심 필드 추출
-- 최소 1페이지(몇 개 공고) CSV에 저장까지 확인
-- 이 시점에서:
-    - Pydantic 모델/파서가 실제 응답과 잘 맞는지 검증
-    - “정확성”의 1차 버전 확보
+- [x] 목록 페이지 → 상세 페이지 진입 코드
+  - [x] BrowserController : 브라우저 세션이 선행 조건이므로 먼저 안정화
+  - [x] Parser : 파서로 스키마 적합성 확인 후 저장/서비스 재작업을 최소화
+  - [x] Repository : 저장소는 파서 출력 확정 후 구현해야 CSV 컬럼/정규화가 안정적
+  - [x] Service : 서비스는 구성 요소가 준비된 뒤 연결해야 흐름 검증이 쉬움
+- [x] HTML/API 응답 가져와서 핵심 필드 추출
+- [x] 최소 1페이지(몇 개 공고) CSV에 저장까지 확인: Pydantic 모델/파서가 실제 응답과 잘 맞는지 검증
         
 
 ## 4단계: 안정성 기능 추가 (Day 3)
 
-- tenacity 재시도
-    - 네트워크/타임아웃에 대해 3회 retry
-- 체크포인트 저장/재시작
-    - 마지막 페이지/공고 ID를 파일에 저장하고 재시작 시 사용
-- 중복 방지
-    - CSV 기준 `notice_id` 중복 스킵
+- [x] tenacity 재시도: 가장 빈번한 실패(네트워크/타임아웃)를 먼저 줄이기
+    - [x] 네트워크/타임아웃에 대해 3회 retry
+- [x] 체크포인트 저장/재시작 : 중단 복구의 핵심이므로 MVP 검증 후 바로 추가
+    - [x] 마지막 페이지/공고 ID를 파일에 저장하고 재시작 시 사용
+- [x] 중복 방지 : 저장소/체크포인트 설계가 확정된 뒤 적용하는 게 안전
+    - CSV 기준 `bid_pbanc_no` + `bid_pbanc_ord` 중복 스킵
     - in-memory set는 **옵션**으로 구현하거나 README에 제안만 해도 충분
+
+### 추가 개선 계획 (4~5단계 공통)
+- [ ] 상세 하위 리스트/맵 CSV 저장 확장
+    - bidPbancItemlist, bidLmtRgnList, bidLmtIntpList, dmLcnsLmtPrmsIntpList,
+      rbidList, bdngCrstList, bidPstmNomnEtpsList, bidInfoList, bsamtMap
+- [ ] 개찰결과 실데이터 더 확보
+    - 결과가 존재하는 페이지 범위 확대 테스트 및 저장 확인
+- [ ] 필드 정규화 보완
+    - 숫자/날짜 포맷 다양성 추가 대응(상세 리스트에도 적용)
+- [ ] (선택) 구조화 로그
+    - “가능하면” 요구 충족을 위해 structlog 전환 고려
         
 
 ## 5단계: 운영 모드 & 로그 (Day 4)
 
-- CLI 모드 확장
+- [x] CLI 모드 확장 : 실행 모드가 확정되어야  로그에 필요한 이벤트 범위가 결정됨
     - once, resume, interval(혹은 cron에서 쉽게 돌릴 수 있게 인자 설계)
     - Click이면 좋고, 시간이 빠듯하면 argparse도 충분
-- 로그 구조화
+- [ ] 로그 구조화 : 안정성 확보 후 로그를 확장해야 의미 없는 로그가 줄어듦
     - 최소한: 시작/종료, 페이지 이동, 저장 성공/실패, 스킵 사유
     - 나중에 log를 읽고 “무슨 일이 있었는지 5분 안에 설명 가능”하게
         
@@ -72,11 +84,17 @@
 - README 작성
     - 실행 방법, config 설명, 설계 의도, 트레이드오프, 한계, 개선 아이디어
 - 테스트
-    - Pydantic 모델(validator), 파서 함수에 대해 pytest 몇 개
+    - [x] Pydantic 모델(validator), 파서 함수에 대해 pytest 몇 개
     - 여유 있으면 서비스 레벨의 간단한 통합 테스트
 - 최종 점검
     - Ctrl+C 후 resume 확인
     - 다른 디렉터리에서 새 venv로 README만 보고 돌아가는지 테스트
+
+### 7. Windows 가상환경 검증(재현성)
+- PowerShell에서 venv 생성/활성화
+- requirements 설치 + playwright install
+- `python main.py --max-pages 1 --reset-checkpoint` 실행
+- `data/*.csv` 생성 확인
         
 
 
@@ -87,8 +105,12 @@
 - Core Engineering: 재시도(tenacity), 체크포인트, 중복 방지, 예외 격리
 - Troubleshooting: 실제 케이스 2~3개 요약
 - How to Run: 재현 가능한 명령어(설정/의존성/출력)
-- Future Works: 병렬화, 알림, 모니터링, 성능 개선
-
+- How to Run에 포함할 필수 요소
+  - requirements.txt 기반 설치 명령(한 줄)
+  - 파이썬 버전 명시(.python-version 또는 README)
+  - 재현 절차(venv 생성 → 설치 → 실행 → 결과 확인)
+  - 출력 경로/파일명 규칙 명시(data/*.csv)
+  - requirements.txt 최신화(버전 고정)
 ## 결정 보류/추후 반영(상세 메모)
 ### 3.0. 크롤링 조합 비교: Ferrari vs Tank
 
@@ -118,7 +140,9 @@
 
 ### 3.4. 재현성/로깅/병렬화 (보류 메모)
 
-* Docker 컨테이너 환경을 구성하여, OS나 로컬 환경에 구애받지 않고 `docker-compose up` 명령어로 즉시 실행 가능한 환경 제공.
+* Docker는 과제 범위에서 제외. 로컬 실행 절차 표준화로 재현성을 확보한다.
+* SQLite 저장은 연동 작업 진행 중이며, 현재는 CSV 저장을 기준으로 검증한다.
+* Selectolax는 파싱 병목 확인 시 도입 계획으로 보류한다.
 * 표준 로깅 포맷과 레벨링을 적용하여 장애 원인과 수집 진행 상황을 추적 가능하도록 설계.
 * 핵심 이벤트(페이지 이동, 추출 성공/실패, 재시도)를 구조화된 로그로 남겨 재현성을 강화.
 * Playwright Async로 탭/컨텍스트 병렬화가 가능하여 현실적인 처리량 확보.

@@ -89,6 +89,64 @@
 - 검색 버튼: `#mf_wfm_container_btnS0001`
 - 초기화 버튼: `#mf_wfm_container_btnIntz`
 
+### UI 검색 조건 → API 필터 매핑(권장)
+| UI 라벨 | UI 셀렉터 | API 필터 키 | 비고 |
+| --- | --- | --- | --- |
+| 입찰공고번호 | `#mf_wfm_container_tbxBidPbancNo` | `bidPbancNo` | 문자열 검색 |
+| 입찰공고명 | `#mf_wfm_container_tbxBidPbancNm` | `bidPbancNm` | 문자열 검색 |
+| 공고분류 | `#mf_wfm_container_sbxBsneClsf` | `prcmBsneSeCd` | 물품/용역/공사 |
+| 진행상태 | `#mf_wfm_container_sbxPrgrsStts` | `bidPbancPgstCd` | 예: 입찰개시=입160003 |
+| 공고구분 | `#mf_wfm_container_sbxBidPbancMth` | `pbancSttsCd` | 등록/변경/취소/재공고 |
+| 공고종류 | `#mf_wfm_container_tbxPbancKndCd` | `pbancKndCd` | 모의공고/실공고 등 |
+| 계약방법 | `#mf_wfm_container_tbxStdCtrtMthdCd` | `stdCtrtMthdCd` | 일반/지명/제한/수의 |
+| 낙찰방법 | `#mf_wfm_container_tbxScsbdMthdCd1` | `scsbdMthdCd` | 적격심사/최저가 등 |
+| 공고게시일자(시작/종료) | `#wq_uuid_1658_ibxStrDay` / `#wq_uuid_1658_ibxEndDay` | `pbancPstgStDt` / `pbancPstgEdDt` | YYYYMMDD |
+
+### 검색 옵션 코드값(확정/추정)
+> 네트워크 응답/페이로드 기준으로 확인된 코드만 기록. 미확정 항목은 추후 보강.
+
+#### 진행상태 (`bidPbancPgstCd`)
+- 입찰개시: `입160003` (확정)
+- 개찰중: `입160001` (확정)
+- 개찰완료: `입160002` (확정)
+- 접수완료: `입160004` (확정)
+- 유찰: `입160005` (확정)
+- 재입찰: `입160006` (확정)
+- 낙찰자선정: `입160010` (확정)
+- 작성중(입찰공고상세 분기): `진010021` (확정)
+- 작성중(입찰공고상세 분기): `진010008` (확정, JS 근거)
+- 작성중(입찰공고상세 분기): `진010034` (확정, JS 근거)
+
+#### 공고종류 (`pbancKndCd`)
+- 모의공고: `공440001` (확정)
+- 실공고: `공440002` (확정)
+
+#### 공고구분 (`pbancSttsCd`)
+- 등록공고: `공400001` (확정)
+- 변경공고: `공400002` (확정)
+- 취소공고: `공400003` (확정)
+- 재공고: `공400004` (확정)
+
+#### 공고분류 (`prcmBsneSeCd`)
+- 물품: `조070001` (확정)
+- 용역: `조070002` (확정)
+- 공사: `조070004` (확정)
+
+#### 계약방법 (`stdCtrtMthdCd`)
+- 일반경쟁: `계030001` (확정)
+- 제한경쟁: `계030002` (확정)
+- 지명경쟁: `계030003` (확정)
+
+#### 낙찰방법 (`scsbdMthdCd`)
+- 적격심사제: `낙030001` (확정)
+- 최저가낙찰제: `낙030028` (확정)
+- 최고가: `낙030027` (확정)
+- 제안서평가에의한낙찰자결정: `낙030021` (확정)
+
+#### 입찰방식 (`bidMthdCd`)
+- 전자입찰: `입180002` (확정)
+- 직찰: `입180001` (확정)
+
 ### 검색 조건(개찰일자 모드)
 - 개찰 조건 영역(숨김/토글): `#mf_wfm_container_grpSrchBox2`
 - 개찰일자 검색 버튼: `#mf_wfm_container_btnS0002`
@@ -294,6 +352,7 @@
 - `bid_clsf_no` (str|null): 분류 번호
 - `bid_prgrs_ord` (str|null): 진행 차수
 - `bid_pbanc_pgst_cd` (str|null): 공고게시 코드
+- `bid_pbanc_pgst_cd_nm` (str|null): 공고게시 코드명
 - `sfbr_slctn_ord` (str|null): 낙찰자선정 차수
 - `sfbr_slctn_rslt_cd` (str|null): 낙찰자선정 결과 코드
 - `doc_sbmsn_ddln_dt` (datetime|null): 문서제출 마감일시
@@ -440,7 +499,7 @@
 - 각 파일은 UTF-8, 헤더 포함, 컬럼 순서 고정
 
 ### 파일 목록 및 컬럼 순서
-- `bid_notice_list.csv`
+- `list.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`, `pbanc_stts_grid_cd_nm`
   - `prcm_bsne_se_cd`, `prcm_bsne_se_cd_nm`
@@ -457,7 +516,7 @@
   - `sfbr_slctn_ord`, `sfbr_slctn_rslt_cd`
   - `doc_sbmsn_ddln_dt`, `cvln_qlem_crtr_no`, `cvln_qlem_pgst_cd`
   - `objtdmd_term_dt`, `bdng_amt_yn_nm`, `slpr_rcpt_ddln_dt1`
-- `bid_notice_detail.csv`
+- `detail.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
@@ -473,7 +532,7 @@
   - `edoc_no`, `usr_doc_no_val`
   - `rbid_prms_yn`, `pbanc_pstg_yn`, `rgn_lmt_yn`, `lcns_lmt_yn`, `pnpr_use_yn`, `pnpr_rls_yn`
   - `unty_atch_file_no`
-- `bid_opening_summary.csv`
+- `opening_summary.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `bid_pbanc_num`, `bid_pbanc_nm`
   - `pbanc_stts_cd`, `pbanc_stts_cd_nm`
@@ -485,7 +544,7 @@
   - `bid_blff_id`, `bid_blff_id_nm`
   - `ibx_onbs_prnmnt_dt`, `ibx_onbs_dt`
   - `edoc_no`, `usr_doc_no_val`
-- `bid_opening_result.csv`
+- `opening_result.csv`
   - `bid_pbanc_no`, `bid_pbanc_ord`, `bid_clsf_no`, `bid_prgrs_ord`
   - `ibx_onbs_rnkg`, `ibx_grp_nm`
   - `ibx_bdng_amt`, `ibx_slpr_rcptn_dt`
@@ -550,6 +609,21 @@
 | --- | --- | --- | --- |
 | `bidInfoList` 추가 필드 | pending | - | 샘플 확보 필요 |
 | `pbancOrgMap` vs `bidPbancMap` 차이 | pending | - | 키 차이 비교 필요 |
+
+### 현재 미확정 항목(샘플 확보 필요)
+| target | status | sample_id | note |
+| --- | --- | --- | --- |
+| `bidPbancItemlist` | pending | - | 상세 응답 하위 리스트 구조 확인 필요 |
+| `bidLmtRgnList` | pending | - | 지역 제한 리스트 스키마 확인 필요 |
+| `bidLmtIntpList` | pending | - | 제한 조건 리스트 스키마 확인 필요 |
+| `dmLcnsLmtPrmsIntpList` | pending | - | 면허 제한 리스트 스키마 확인 필요 |
+| `rbidList` | pending | - | 재입찰 리스트 스키마 확인 필요 |
+| `bdngCrstList` | pending | - | 투찰 기준 리스트 스키마 확인 필요 |
+| `bidPstmNomnEtpsList` | pending | - | 지명 업체 리스트 스키마 확인 필요 |
+| `bidInfoList` | pending | - | 추가 정보 리스트 스키마 확인 필요 |
+| `bsamtMap` | pending | - | 예산/금액 맵 스키마 확인 필요 |
+| `pbancOrgMap` | pending | - | bidPbancMap과의 키 차이 확인 필요 |
+| `grdLisList` | pending | - | 개찰결과 요약 리스트 스키마 확인 필요 |
 
 ## 2.1.1 요청별 추출값 요약
 ### 목록 조회: `selectBidPbancList.do`

@@ -1,5 +1,6 @@
 AGENTS.md
 docs/com.md
+
 .ai
 # Compiled class file
 *.class
@@ -25,3 +26,15 @@ docs/com.md
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+__pycache__/
+*.pyc
+data/*
+data/*.csv
+data/*.json
+data/backup/
+data/raw/
+/docs/learning_notes.md
+# Python virtualenv
+venv/
+.venv/
