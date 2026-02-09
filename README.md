@@ -37,12 +37,7 @@ docs/                # 결정 기록/트러블슈팅/스키마
 권장 Python 버전: `3.11.14`
 
 ## 1. 설치
-빠른 시작
-```
-python install
-```
-
-수동 설치가 필요할 때 (운영체제 공통)
+수동 설치 (운영체제 공통)
 ```
 python -m venv venv
 ./venv/bin/pip install -r requirements.txt
@@ -64,48 +59,28 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ## 2. 실행
 기본 실행
 ```
-python run
+python main.py
 ```
-
-자동화 명령
-| 목적 | 명령 | 설명 |
-| --- | --- | --- |
-| 기본 실행 | `python run` | 2페이지 기본 수집 |
-| 페이지 수 지정 | `python run pages <N>` | N페이지 수집 (생략 시 기본값 2페이지는 `python run` 사용) |
-| 필터 프리셋 | `python run preset` | 빠른 검증용 필터 조합 |
-| 주기 실행 | `python run schedule <SEC> [N]` | `<SEC>`초마다 반복, 선택적 페이지 수 |
-| 체크포인트 초기화 | `python run reset-checkpoint` | 체크포인트 초기화 후 실행 |
-| 고급 실행 | `python run -- <main.py 옵션>` | main.py 옵션 직접 전달 |
-| 설정 변경 | `python set <KEY> <VALUE>` | `config.yaml` 값 변경 |
-| 설정 키 확인 | `python set keys` | 변경 가능한 키/타입/현재값 출력 |
 
 실행 예시
 ```
-python run
-python run pages 5
-python run preset
-python run schedule 3600 2
-python run reset-checkpoint
-python run -- --max-pages 3 --mode once
+python main.py -p 5
+python main.py -m interval -i 3600
+python main.py -r
+python main.py -f knd=실공고,stts=등록공고,pgst=입찰개시
 ```
 
 옵션/파라미터 정리
-- `pages <N>`: 목록 페이지 수를 제한합니다(1페이지=100건 기준)
-- `schedule <SEC> [N]`: `<SEC>`초마다 반복 실행하며, `[N]`으로 페이지 수를 선택 지정합니다
-- `-- <main.py 옵션>`: `main.py`의 CLI 옵션을 그대로 전달합니다
-- `python set <KEY> <VALUE>`: `config.yaml` 값을 변경합니다
+- `-p, --pages <N>`: 목록 페이지 수 제한 (1페이지=100건 기준)
+- `-m, --mode <once|interval>`: 실행 모드
+- `-i, --interval <SEC>`: 주기 실행 대기 시간(초)
+- `-r, --reset`: 체크포인트 초기화
+- `-f, --filter <값>`: 필터 (예: `knd=실공고,stts=등록공고,pgst=입찰개시`)
+- `-c, --config <경로>`: 설정 파일 경로
 
 ## 설정(config.yaml)
 주요 설정은 `config.yaml`에 있습니다. 실행 전에 바꾸지 않아도 됩니다.
-간단 변경은 `set`으로 가능합니다.
-```
-python set crawl.max_pages 10
-python set crawl.snapshot_enabled true
-```
-설정 키 목록 확인
-```
-python set keys
-```
+설정 변경은 `config.yaml`을 직접 편집하세요.
 - `set`은 타입 검증 후 변경하며, 변경 전/후 값을 함께 출력합니다.
 - `search_range_days`: 최근 N일 범위 자동 계산
 - `max_pages`: 페이지 제한
