@@ -73,6 +73,16 @@ class CrawlerService:  # 크롤링 비즈니스 로직 계층.
                     self._repo.save_opening_summary_items(opening_summaries)
                 if opening_results:  # 개찰 결과 저장.
                     self._repo.save_opening_result_items(opening_results)
+                self._logger.info(
+                    "page_saved page=%s list=%s detail=%s noce=%s attach=%s opening_summary=%s opening_result=%s",
+                    page_index,
+                    len(items),
+                    len(detail_items),
+                    len(noce_items),
+                    len(attachments),
+                    len(opening_summaries),
+                    len(opening_results),
+                )
                 self._checkpoint.save(CrawlCheckpoint(current_page=page_index + 1))  # 다음 페이지 저장.
             self._logger.info("crawl_done")  # 종료 로그.
             return  # API 경로는 여기서 종료.
