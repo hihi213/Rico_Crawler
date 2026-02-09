@@ -107,6 +107,10 @@ def main() -> None:
         run_cmd([str(python_path), "-m", "playwright", "install"], logger)
 
     logger.info("설치 완료: %s", venv_dir)
+    if os_name == "windows":
+        logger.info("실행 방법: .\\venv\\Scripts\\python.exe main.py -p 5")
+    else:
+        logger.info("실행 방법: ./venv/bin/python main.py -p 5")
 
 
 if __name__ == "__main__":
